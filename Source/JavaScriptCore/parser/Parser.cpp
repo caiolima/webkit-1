@@ -2978,7 +2978,7 @@ parseMethod:
             bool escaped = m_token.m_data.escaped;
             ASSERT(ident);
             next();
-            if (parseMode == SourceParseMode::MethodMode && !escaped && (matchIdentifierOrKeyword() || match(STRING) || match(DOUBLE) || match(INTEGER) || match(BIGINT) || match(OPENBRACKET))) {
+            if (parseMode == SourceParseMode::MethodMode && !escaped && (matchIdentifierOrKeyword() || match(STRING) || match(DOUBLE) || match(INTEGER) || match(BIGINT) || match(OPENBRACKET) || (Options::usePrivateMethods() && match(PRIVATENAME)))) {
                 isGetter = *ident == propertyNames.get;
                 isSetter = *ident == propertyNames.set;
             }
@@ -3025,8 +3025,19 @@ parseMethod:
 
         TreeProperty property;
         if (isGetter || isSetter) {
-            type = static_cast<PropertyNode::Type>(type & ~PropertyNode::Constant);
-            type = static_cast<PropertyNode::Type>(type | (isGetter ? PropertyNode::Getter : PropertyNode::Setter));
+            if (Options::usePrivateMethods() && match(PRIVATENAME)) {
+                ident = m_token.m_data.ident;
+                if (isSetter) {
+                    semanticFailIfTrue(classScope->declarePrivateSetter(*ident) & DeclarationResult::InvalidDuplicateDeclaration, "Declared private setter with an already used name");
+                    type = static_cast<PropertyNode::Type>(type | PropertyNode::PrivateSetter);
+                } else {
+                    semanticFailIfTrue(classScope->declarePrivateGetter(*ident) & DeclarationResult::InvalidDuplicateDeclaration, "Declared private getter with an already used name");
+                    type = static_cast<PropertyNode::Type>(type | PropertyNode::PrivateGetter);
+                }
+            } else {
+                type = static_cast<PropertyNode::Type>(type & ~PropertyNode::Constant);
+                type = static_cast<PropertyNode::Type>(type | (isGetter ? PropertyNode::Getter : PropertyNode::Setter));
+            }
             property = parseGetterSetter(context, type, methodStart, ConstructorKind::None, tag);
             failIfFalse(property, "Cannot parse this method");
         } else if (!match(OPENPAREN) && (tag == ClassElementTag::Instance || Options::usePublicStaticClassFields()) && parseMode == SourceParseMode::MethodMode) {
@@ -4428,12 +4439,17 @@ template <class TreeBuilder> TreeProperty Parser<LexerType>::parseGetterSetter(T
 
     JSTokenLocation location(tokenLocation());
 
-    if (matchSpecIdentifier() || match(STRING) || m_token.m_type & KeywordTokenFlag) {
+    if (matchSpecIdentifier() || match(STRING) || (Options::useClassFields() && match(PRIVATENAME)) || m_token.m_type & KeywordTokenFlag) {
         stringPropertyName = m_token.m_data.ident;
         semanticFailIfTrue(tag == ClassElementTag::Static && *stringPropertyName == m_vm.propertyNames->prototype,
             "Cannot declare a static method named 'prototype'");
         semanticFailIfTrue(tag == ClassElementTag::Instance && *stringPropertyName == m_vm.propertyNames->constructor,
             "Cannot declare a getter or setter named 'constructor'");
+
+        if (match(PRIVATENAME)) {
+            semanticFailIfTrue(tag == ClassElementTag::No, "Cannot declare a private setter or getter outside a class");
+            semanticFailIfTrue(tag == ClassElementTag::Static, "Cannot declare a private setter or getter as static");
+        }
         next();
     } else if (match(DOUBLE) || match(INTEGER)) {
         numericPropertyName = m_token.m_data.doubleValue;
@@ -4454,10 +4470,18 @@ template <class TreeBuilder> TreeProperty Parser<LexerType>::parseGetterSetter(T
         failIfFalse(match(OPENPAREN), "Expected a parameter list for getter definition");
         SetForScope<SourceParseMode> innerParseMode(m_parseMode, SourceParseMode::GetterMode);
         failIfFalse((parseFunctionInfo(context, FunctionNameRequirements::Unnamed, false, constructorKind, SuperBinding::Needed, getterOrSetterStartOffset, info, FunctionDefinitionType::Method)), "Cannot parse getter definition");
-    } else {
+    } else if (type & PropertyNode::Setter) {
         failIfFalse(match(OPENPAREN), "Expected a parameter list for setter definition");
         SetForScope<SourceParseMode> innerParseMode(m_parseMode, SourceParseMode::SetterMode);
         failIfFalse((parseFunctionInfo(context, FunctionNameRequirements::Unnamed, false, constructorKind, SuperBinding::Needed, getterOrSetterStartOffset, info, FunctionDefinitionType::Method)), "Cannot parse setter definition");
+    } else if (type & PropertyNode::PrivateSetter) {
+        failIfFalse(match(OPENPAREN), "Expected a parameter list for private setter definition");
+        SetForScope<SourceParseMode> innerParseMode(m_parseMode, SourceParseMode::SetterMode);
+        failIfFalse((parseFunctionInfo(context, FunctionNameRequirements::Unnamed, false, constructorKind, SuperBinding::Needed, getterOrSetterStartOffset, info, FunctionDefinitionType::Method)), "Cannot parse setter definition");
+    } else if (type & PropertyNode::PrivateGetter) {
+        failIfFalse(match(OPENPAREN), "Expected a parameter list for private getter definition");
+        SetForScope<SourceParseMode> innerParseMode(m_parseMode, SourceParseMode::GetterMode);
+        failIfFalse((parseFunctionInfo(context, FunctionNameRequirements::Unnamed, false, constructorKind, SuperBinding::Needed, getterOrSetterStartOffset, info, FunctionDefinitionType::Method)), "Cannot parse getter definition");
     }
 
     if (stringPropertyName)

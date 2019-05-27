@@ -579,17 +579,69 @@ void PropertyListNode::emitDeclarePrivateFieldNames(BytecodeGenerator& generator
 
 RegisterID* PropertyListNode::emitBytecode(BytecodeGenerator& generator, RegisterID* dstOrConstructor, RegisterID* prototype, Vector<JSTextPosition>* instanceFieldLocations, Vector<JSTextPosition>* staticFieldLocations)
 {
+    typedef std::pair<PropertyNode*, PropertyNode*> GetterSetterPair;
+    typedef HashMap<UniquedStringImpl*, GetterSetterPair, IdentifierRepHash> GetterSetterMap;
+    GetterSetterMap privateAccessorMap;
+
     PropertyListNode* p = this;
     RegisterID* dst = nullptr;
+    for (; p; p = p->m_next) {
+        if (!(p->m_node->type() & (PropertyNode::PrivateGetter | PropertyNode::PrivateSetter))))
+            continue;
 
+        // We group private getters and setters to store them in a object
+        GetterSetterPair pair(p->m_node, static_cast<PropertyNode*>(nullptr));
+        GetterSetterMap::AddResult result = privateAccessorMap.add(p->m_node->name()->impl(), pair);
+        auto& resultPair = result.iterator->value;
+        // If the map already contains an element with node->name(),
+        // we need to store this node in the second part.
+        if (!result.isNewEntry)
+            resultPair.second = p->m_node;
+        continue;
+    }
+
+    // Then we declare private accessos
+    for (auto& it : privateAccessorMap) {
+        RefPtr<RegisterID> getterSetterObj = generator.emitNewObject(generator.newTemporary());
+
+        GetterSetterPair pair = it.value;
+        if (pair.first) {
+            dst = pair.first->isInstanceClassProperty() ? prototype : dstOrConstructor;
+            RefPtr<RegisterID> value = generator.emitNode(pair.first->m_assign);
+            if (pair.first->needsSuperBinding())
+                emitPutHomeObject(generator, value.get(), dst);
+            auto setterOrGetterIdent = pair.first->m_type & PropertyNode::PrivateGetter
+                ? generator.propertyNames().builtinNames().getPrivateName()
+                : generator.propertyNames().builtinNames().setPrivateName();
+            generator.emitPutById(getterSetterObj.get(), setterOrGetterIdent, value.get());
+        }
+
+        if (pair.second) {
+            dst = pair.second->isInstanceClassProperty() ? prototype : dstOrConstructor;
+            RefPtr<RegisterID> value = generator.emitNode(pair.second->m_assign);
+            if (pair.second->needsSuperBinding())
+                emitPutHomeObject(generator, value.get(), dst);
+            auto setterOrGetterIdent = pair.second->m_type & PropertyNode::PrivateGetter
+                ? generator.propertyNames().builtinNames().getPrivateName()
+                : generator.propertyNames().builtinNames().setPrivateName();
+            generator.emitPutById(getterSetterObj.get(), setterOrGetterIdent, value.get());
+        }
+
+        Variable var = generator.variable(*pair.first->name());
+        generator.emitPutToScope(generator.scopeRegister(), var, getterSetterObj.get(), DoNotThrowIfNotFound, InitializationMode::ConstInitialization);
+    }
+    
     // Fast case: this loop just handles regular value properties.
     for (; p && (p->m_node->m_type & PropertyNode::Constant); p = p->m_next) {
         dst = p->m_node->isInstanceClassProperty() ? prototype : dstOrConstructor;
 
+        if (p->m_node->type() & (PropertyNode::PrivateGetter | PropertyNode::PrivateSetter))
+            continue;
+
         if (p->isComputedClassField())
             emitSaveComputedFieldName(generator, *p->m_node);
 
-        if (p->isInstanceClassField() && !(p->m_node->type() & PropertyNode::PrivateMethod)) {
+        if (p->isInstanceClassField()) {
             ASSERT(instanceFieldLocations);
             instanceFieldLocations->append(p->position());
             continue;
@@ -610,8 +662,6 @@ RegisterID* PropertyListNode::emitBytecode(BytecodeGenerator& generator, Registe
         // a computed property or a spread, just emit everything as that may override previous values.
         bool canOverrideProperties = false;
 
-        typedef std::pair<PropertyNode*, PropertyNode*> GetterSetterPair;
-        typedef HashMap<UniquedStringImpl*, GetterSetterPair, IdentifierRepHash> GetterSetterMap;
         GetterSetterMap instanceMap;
         GetterSetterMap staticMap;
 
@@ -650,6 +700,9 @@ RegisterID* PropertyListNode::emitBytecode(BytecodeGenerator& generator, Registe
 
             if (p->isComputedClassField())
                 emitSaveComputedFieldName(generator, *p->m_node);
+
+            if (p->m_node->type() & (PropertyNode::PrivateGetter | PropertyNode::PrivateSetter))
+                continue;
 
             if (p->isInstanceClassField()) {
                 ASSERT(instanceFieldLocations);
@@ -782,6 +835,8 @@ void PropertyListNode::emitPutConstantProperty(BytecodeGenerator& generator, Reg
 
     if (node.isClassProperty()) {
         ASSERT(node.needsSuperBinding());
+        ASSERT(!(node.type() & PropertyNode::PrivateSetter));
+        ASSERT(!(node.type() & PropertyNode::PrivateGetter));
 
         if (node.type() & PropertyNode::PrivateMethod) {
             Variable var = generator.variable(*node.name());
@@ -919,14 +974,40 @@ RegisterID* DotAccessorNode::emitBytecode(BytecodeGenerator& generator, Register
 RegisterID* BaseDotNode::emitGetPropertyValue(BytecodeGenerator& generator, RegisterID* dst, RegisterID* base, RefPtr<RegisterID>& thisValue)
 {
     if (isPrivateMember()) {
-        if (generator.isPrivateMethod(identifier())) {
-            Variable var = generator.variable(identifier());
+        auto identifierName = identifier();
+        if (generator.isPrivateMethod(identifierName)) {
+            Variable var = generator.variable(identifierName);
             RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
 
             RegisterID* privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get());
             generator.emitCheckPrivateBrand(base, privateBrandSymbol);
 
             return generator.emitGetFromScope(dst, scope.get(), var, ThrowIfNotFound);
+        }
+
+        if (generator.isPrivateGetter(identifierName)) {
+            Variable var = generator.variable(identifierName);
+            RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
+
+            RegisterID* privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get());
+            generator.emitCheckPrivateBrand(base, privateBrandSymbol);
+
+            RefPtr<RegisterID> getterSetterObj = generator.emitGetFromScope(generator.newTemporary(), scope.get(), var, ThrowIfNotFound);
+            RefPtr<RegisterID> getterFunction = generator.emitDirectGetById(generator.newTemporary(), getterSetterObj.get(), generator.propertyNames().builtinNames().getPrivateName());
+            CallArguments args(generator, nullptr);
+            generator.move(args.thisRegister(), base);
+            return generator.emitCall(dst, getterFunction.get(), NoExpectedFunction, args, m_position, m_position, m_position, DebuggableCall::Yes);
+        }
+
+        if (generator.isPrivateSetter(identifierName)) {
+            // We need to perform brand check to follow the spec
+            Variable var = generator.variable(identifierName);
+            RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
+
+            RegisterID* privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get());
+            generator.emitCheckPrivateBrand(base, privateBrandSymbol);
+            generator.emitThrowTypeError("Trying to access a not defined private getter");
+            return dst;
         }
 
         Variable var = generator.variable(m_ident);
@@ -957,7 +1038,25 @@ RegisterID* BaseDotNode::emitPutProperty(BytecodeGenerator& generator, RegisterI
 {
     if (isPrivateMember()) {
         auto identifierName = identifier();
-        if (generator.isPrivateMethod(identifierName)) {
+        if (generator.isPrivateSetter(identifierName)) {
+            Variable var = generator.variable(identifierName);
+            RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
+
+            RegisterID* privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get());
+            generator.emitCheckPrivateBrand(base, privateBrandSymbol);
+
+            RefPtr<RegisterID> getterSetterObj = generator.emitGetFromScope(generator.newTemporary(), scope.get(), var, ThrowIfNotFound);
+            RefPtr<RegisterID> setterFunction = generator.emitDirectGetById(generator.newTemporary(), getterSetterObj.get(), generator.propertyNames().builtinNames().setPrivateName());
+            CallArguments args(generator, nullptr, 1);
+            generator.move(args.thisRegister(), base);
+            generator.move(args.argumentRegister(0), value);
+            generator.emitCall(generator.newTemporary(), setterFunction.get(), NoExpectedFunction, args, m_position, m_position, m_position, DebuggableCall::Yes);
+
+            return value;
+        }
+
+        bool isPrivateGetter = generator.isPrivateGetter(identifierName);
+        if (isPrivateGetter || generator.isPrivateMethod(identifierName)) {
             Variable var = generator.variable(identifierName);
             RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
 

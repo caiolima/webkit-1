@@ -1904,6 +1904,15 @@ bool BytecodeGenerator::instantiateLexicalVariables(const VariableEnvironment& l
                 symbolTable->addPrivateName(entry.key.get(), PrivateNameEntry(PrivateNameEntry::Traits::IsDeclared));
             else if (entry.value.isPrivateMethod())
                 symbolTable->addPrivateName(entry.key.get(), PrivateNameEntry(PrivateNameEntry::Traits::IsDeclared | PrivateNameEntry::Traits::IsMethod));
+            else {
+                uint16_t traits = PrivateNameEntry::Traits::IsDeclared;
+                if (entry.value.isPrivateGetter())
+                    traits |= PrivateNameEntry::Traits::IsGetter;
+                if (entry.value.isPrivateSetter())
+                    traits |= PrivateNameEntry::Traits::IsSetter;
+
+                symbolTable->addPrivateName(entry.key.get(), PrivateNameEntry(traits));
+            }
         }
     }
     return hasCapturedVariables;
@@ -2938,6 +2947,30 @@ bool BytecodeGenerator::isPrivateMethod(const Identifier& ident)
         auto it = map.find(ident.impl());
         if (it != map.end())
             return it->value.isMethod();
+    }
+
+    return false;
+}
+
+bool BytecodeGenerator::isPrivateSetter(const Identifier& ident)
+{
+    for (unsigned i = m_privateNamesStack.size(); i--; ) {
+        auto& map = m_privateNamesStack[i];
+        auto it = map.find(ident.impl());
+        if (it != map.end())
+            return it->value.isSetter();
+    }
+
+    return false;
+}
+
+bool BytecodeGenerator::isPrivateGetter(const Identifier& ident)
+{
+    for (unsigned i = m_privateNamesStack.size(); i--; ) {
+        auto& map = m_privateNamesStack[i];
+        auto it = map.find(ident.impl());
+        if (it != map.end())
+            return it->value.isGetter();
     }
 
     return false;
