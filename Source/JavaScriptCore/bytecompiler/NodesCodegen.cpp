@@ -632,7 +632,52 @@ RegisterID* PropertyListNode::emitBytecode(BytecodeGenerator& generator, Registe
 
     PropertyListNode* p = this;
     RegisterID* dst = nullptr;
+    for (; p; p = p->m_next) {
+        if (!(p->m_node->type() & (PropertyNode::PrivateGetter | PropertyNode::PrivateSetter))))
+            continue;
 
+        // We group private getters and setters to store them in a object
+        GetterSetterPair pair(p->m_node, static_cast<PropertyNode*>(nullptr));
+        GetterSetterMap::AddResult result = privateAccessorMap.add(p->m_node->name()->impl(), pair);
+        auto& resultPair = result.iterator->value;
+        // If the map already contains an element with node->name(),
+        // we need to store this node in the second part.
+        if (!result.isNewEntry)
+            resultPair.second = p->m_node;
+        continue;
+    }
+
+    // Then we declare private accessos
+    for (auto& it : privateAccessorMap) {
+        RefPtr<RegisterID> getterSetterObj = generator.emitNewObject(generator.newTemporary());
+
+        GetterSetterPair pair = it.value;
+        if (pair.first) {
+            dst = pair.first->isInstanceClassProperty() ? prototype : dstOrConstructor;
+            RefPtr<RegisterID> value = generator.emitNode(pair.first->m_assign);
+            if (pair.first->needsSuperBinding())
+                emitPutHomeObject(generator, value.get(), dst);
+            auto setterOrGetterIdent = pair.first->m_type & PropertyNode::PrivateGetter
+                ? generator.propertyNames().builtinNames().getPrivateName()
+                : generator.propertyNames().builtinNames().setPrivateName();
+            generator.emitPutById(getterSetterObj.get(), setterOrGetterIdent, value.get());
+        }
+
+        if (pair.second) {
+            dst = pair.second->isInstanceClassProperty() ? prototype : dstOrConstructor;
+            RefPtr<RegisterID> value = generator.emitNode(pair.second->m_assign);
+            if (pair.second->needsSuperBinding())
+                emitPutHomeObject(generator, value.get(), dst);
+            auto setterOrGetterIdent = pair.second->m_type & PropertyNode::PrivateGetter
+                ? generator.propertyNames().builtinNames().getPrivateName()
+                : generator.propertyNames().builtinNames().setPrivateName();
+            generator.emitPutById(getterSetterObj.get(), setterOrGetterIdent, value.get());
+        }
+
+        Variable var = generator.variable(*pair.first->name());
+        generator.emitPutToScope(generator.scopeRegister(), var, getterSetterObj.get(), DoNotThrowIfNotFound, InitializationMode::ConstInitialization);
+    }
+    
     // Fast case: this loop just handles regular value properties.
     for (; p && (p->m_node->m_type & PropertyNode::Constant); p = p->m_next) {
         dst = p->m_node->isInstanceClassProperty() ? prototype : dstOrConstructor;
@@ -643,7 +688,7 @@ RegisterID* PropertyListNode::emitBytecode(BytecodeGenerator& generator, Registe
         if (p->isComputedClassField())
             emitSaveComputedFieldName(generator, *p->m_node);
 
-        if (p->isInstanceClassField() && !(p->m_node->type() & PropertyNode::PrivateMethod)) {
+        if (p->isInstanceClassField()) {
             ASSERT(instanceFieldLocations);
             instanceFieldLocations->append(p->position());
             continue;

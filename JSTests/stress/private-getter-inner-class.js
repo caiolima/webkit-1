@@ -126,33 +126,6 @@ let assert = {
     assert.sameValue(c.method(), 'outer class');
 
     assert.throws(TypeError, function() {
-        innerB.method(c);
-    });
-})();
-
-(function () {
-    class C {
-        #m() { return 'outer class'; }
-
-        method() { return this.#m(); }
-
-        B = class {
-            method(o) {
-                return o.#m;
-            }
-
-            get #m() { return 'test262'; }
-        }
-    }
-
-    let c = new C();
-    let innerB = new c.B();
-    assert.sameValue(innerB.method(innerB), 'test262');
-    assert.sameValue(c.method(), 'outer class');
-    assert.throws(TypeError, function() {
-        innerB.method(c);
-    }, 'accessed inner class getter from an object of outer class');
-    assert.throws(TypeError, function() {
         C.prototype.method.call(innerB);
     });
 })();
