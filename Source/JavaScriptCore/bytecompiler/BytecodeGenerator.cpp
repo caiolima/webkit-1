@@ -2972,28 +2972,6 @@ PrivateNameEntry BytecodeGenerator::getPrivateTraits(const Identifier& ident)
     return PrivateNameEntry();
 }
 
-bool BytecodeGenerator::isPrivateSetter(const Identifier& ident)
-{
-    for (unsigned i = m_privateNamesStack.size(); i--; ) {
-        auto& map = m_privateNamesStack[i];
-        auto it = map.find(ident.impl());
-        if (it != map.end())
-            return it->value.isSetter();
-    }
-}
-
-Optional<PrivateNameEntry> BytecodeGenerator::tryGetPrivateTraits(const Identifier& ident)
-{
-    for (unsigned i = m_privateNamesStack.size(); i--; ) {
-        auto& map = m_privateNamesStack[i];
-        auto it = map.find(ident.impl());
-        if (it != map.end())
-            return it->value;
-    }
-
-    return WTF::nullopt;
-}
-
 void BytecodeGenerator::pushPrivateAccessNames(const PrivateNameEnvironment* environment)
 {
     if (!environment || !environment->size())
