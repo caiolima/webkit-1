@@ -2276,6 +2276,8 @@ ALWAYS_INLINE static JSValue getPrivateName(JSGlobalObject* globalObject, CallFr
     RETURN_IF_EXCEPTION(scope, JSValue());
 
     JSObject* base = baseValue.toObject(globalObject);
+    RETURN_IF_EXCEPTION(scope, JSValue());
+
     PropertySlot slot(base, PropertySlot::InternalMethodType::GetOwnProperty);
     base->getPrivateField(globalObject, fieldName, slot);
     RETURN_IF_EXCEPTION(scope, JSValue());
@@ -2382,7 +2384,7 @@ JSC_DEFINE_JIT_OPERATION(operationGetPrivateNameByIdOptimize, EncodedJSValue, (J
         return JSValue::encode(slot.getValue(globalObject, fieldName));
     }
 
-    return JSValue::encode(getPrivateName(globalObject, callFrame, baseValue, fieldName));
+    RELEASE_AND_RETURN(scope, JSValue::encode(getPrivateName(globalObject, callFrame, baseValue, fieldName)));
 }
 
 JSC_DEFINE_JIT_OPERATION(operationGetPrivateNameByIdGeneric, EncodedJSValue, (JSGlobalObject* globalObject, EncodedJSValue base, uintptr_t rawCacheableIdentifier))

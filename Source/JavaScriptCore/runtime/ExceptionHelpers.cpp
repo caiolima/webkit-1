@@ -326,7 +326,7 @@ JSObject* createTDZError(JSGlobalObject* globalObject)
 
 JSObject* createInvalidPrivateNameError(JSGlobalObject* globalObject)
 {
-    return createTypeError(globalObject, makeString("Cannot access invalid private field"), defaultSourceAppender, TypeNothing);
+    return createTypeError(globalObject, makeString("Invalid private member access"), defaultSourceAppender, TypeNothing);
 }
 
 JSObject* createRedefinedPrivateNameError(JSGlobalObject* globalObject)

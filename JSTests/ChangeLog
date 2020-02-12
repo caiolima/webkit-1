@@ -1,3 +1,21 @@
+2020-10-20  Caio Lima  <ticaiolima@gmail.com>
+
+        [ESNext] Implement private methods
+        https://bugs.webkit.org/show_bug.cgi?id=194434
+
+        Reviewed by NOBODY (OOPS!).
+
+        * stress/private-brand-installed-after-super-call-from-arrow-function.js: Added.
+        * stress/private-brand-installed-after-super-call-from-eval.js: Added.
+        * stress/private-method-brand-check.js: Added.
+        * stress/private-method-comparison.js: Added.
+        * stress/private-method-extends-brand-check.js: Added.
+        * stress/private-method-get-and-call.js: Added.
+        * stress/private-method-nested-class.js: Added.
+        * stress/private-methods-on-proxy.js: Added.
+        * stress/private-names-available-on-direct-eval.js: Added.
+        * test262/config.yaml:
+
 2021-02-01  Yusuke Suzuki  <ysuzuki@apple.com>
 
         [JSC] Add @ in Error.stack if URL exists

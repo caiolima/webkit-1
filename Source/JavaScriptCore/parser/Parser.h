@@ -500,11 +500,28 @@ public:
         m_lexicalVariables.usePrivateName(ident);
     }
 
-    DeclarationResultMask declarePrivateName(const Identifier& ident)
+    DeclarationResultMask declarePrivateMethod(const Identifier& ident)
     {
         ASSERT(m_allowsLexicalDeclarations);
         DeclarationResultMask result = DeclarationResult::Valid;
-        auto addResult = m_lexicalVariables.declarePrivateName(ident);
+        bool addResult = m_lexicalVariables.declarePrivateMethod(ident);
+
+        if (!addResult) {
+            result |= DeclarationResult::InvalidDuplicateDeclaration;
+            return result;
+        }
+
+        useVariable(&ident, false);
+        addClosedVariableCandidateUnconditionally(ident.impl());
+
+        return result;
+    }
+
+    DeclarationResultMask declarePrivateField(const Identifier& ident)
+    {
+        ASSERT(m_allowsLexicalDeclarations);
+        DeclarationResultMask result = DeclarationResult::Valid;
+        auto addResult = m_lexicalVariables.declarePrivateField(ident);
         if (!addResult.isNewEntry)
             result |= DeclarationResult::InvalidDuplicateDeclaration;
         return result;
