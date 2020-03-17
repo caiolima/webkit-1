@@ -760,7 +760,7 @@ namespace JSC {
         const Identifier* m_name;
         ExpressionNode* m_expression;
         ExpressionNode* m_assign;
-        unsigned m_type : 10;
+        unsigned m_type;
         unsigned m_needsSuperBinding : 1;
         static_assert(1 << 2 > static_cast<unsigned>(ClassElementTag::LastTag), "ClassElementTag shouldn't use more than two bits");
         unsigned m_classElementTag : 2;
