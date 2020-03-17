@@ -4439,7 +4439,7 @@ template <class TreeBuilder> TreeProperty Parser<LexerType>::parseGetterSetter(T
 
     JSTokenLocation location(tokenLocation());
 
-    if (matchSpecIdentifier() || match(STRING) || (Options::usePrivateClassFields() && match(PRIVATENAME)) || m_token.m_type & KeywordTokenFlag) {
+    if (matchSpecIdentifier() || match(STRING) || (Options::usePrivateMethods() && match(PRIVATENAME)) || m_token.m_type & KeywordTokenFlag) {
         stringPropertyName = m_token.m_data.ident;
         semanticFailIfTrue(tag == ClassElementTag::Static && *stringPropertyName == m_vm.propertyNames->prototype,
             "Cannot declare a static method named 'prototype'");

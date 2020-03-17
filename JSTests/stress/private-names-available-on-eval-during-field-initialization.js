@@ -1,4 +1,4 @@
-//@ requireOptions("--useClassFields=true")
+//@ requireOptions("--usePrivateMethods=true")
 
 let assert = {
     sameValue: function (lhs, rhs) {
