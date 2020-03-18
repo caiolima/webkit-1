@@ -1904,7 +1904,7 @@ bool BytecodeGenerator::instantiateLexicalVariables(const VariableEnvironment& l
                 symbolTable->addPrivateName(entry.key.get(), PrivateNameEntry(PrivateNameEntry::Traits::IsDeclared));
             else if (entry.value.isPrivateMethod())
                 symbolTable->addPrivateName(entry.key.get(), PrivateNameEntry(PrivateNameEntry::Traits::IsDeclared | PrivateNameEntry::Traits::IsMethod));
-            else {
+            else if (entry.value.isPrivateGetter() || entry.value.isPrivateSetter()) {
                 uint16_t traits = PrivateNameEntry::Traits::IsDeclared;
                 if (entry.value.isPrivateGetter())
                     traits |= PrivateNameEntry::Traits::IsGetter;
