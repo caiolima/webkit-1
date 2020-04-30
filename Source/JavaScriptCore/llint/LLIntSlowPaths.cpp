@@ -695,7 +695,10 @@ LLINT_SLOW_PATH_DECL(slow_path_get_by_id_direct)
 
 static void setupGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm, CodeBlock* codeBlock, const Instruction* pc, GetByIdModeMetadata& metadata, JSCell* baseCell, PropertySlot& slot, const Identifier& ident)
 {
+    UNUSED_PARAM(ident);
     Structure* structure = baseCell->structure(vm);
+    if (metadata.m_modeMetadata.mode == GetByIdMode::ProtoLoad && metadata.m_modeMetadata.protoLoadMode.numCases() >= Options::maxAccessVariantListSize())
+        return;
 
     if (structure->typeInfo().prohibitsPropertyCaching())
         return;
@@ -703,50 +706,54 @@ static void setupGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm, Cod
     if (structure->needImpurePropertyWatchpoint())
         return;
 
-    if (structure->isDictionary()) {
-        if (structure->hasBeenFlattenedBefore())
+    {
+        auto result = preparePrototypeChainForCaching(globalObject, baseCell, slot);
+        if (!result)
             return;
-        structure->flattenDictionaryStructure(vm, jsCast<JSObject*>(baseCell));
+        if (result->usesPolyProto || result->flattenedDictionary)
+            return;
     }
 
-    prepareChainForCaching(globalObject, baseCell, slot);
 
-    ObjectPropertyConditionSet conditions;
-    if (slot.isUnset())
-        conditions = generateConditionsForPropertyMiss(vm, codeBlock, globalObject, structure, ident.impl());
-    else
-        conditions = generateConditionsForPrototypePropertyHit(vm, codeBlock, globalObject, structure, slot.slotBase(), ident.impl());
-
-    if (!conditions.isValid())
-        return;
-
-    unsigned bytecodeOffset = codeBlock->bytecodeOffset(pc);
-    PropertyOffset offset = invalidOffset;
-    CodeBlock::StructureWatchpointMap& watchpointMap = codeBlock->llintGetByIdWatchpointMap();
-    Vector<LLIntPrototypeLoadAdaptiveStructureWatchpoint> watchpoints;
-    watchpoints.reserveInitialCapacity(conditions.size());
-    for (ObjectPropertyCondition condition : conditions) {
-        if (!condition.isWatchable())
+    JSObject* current = asObject(structure->prototypeForLookup(globalObject));
+    while (1) {
+        Structure* structure = current->structure(vm);
+        if (structure->transitionWatchpointSetHasBeenInvalidated())
             return;
-        if (condition.condition().kind() == PropertyCondition::Presence)
-            offset = condition.condition().offset();
-        watchpoints.uncheckedConstructAndAppend(codeBlock, condition, bytecodeOffset);
-        watchpoints.last().install(vm);
-    }
 
-    ASSERT((offset == invalidOffset) == slot.isUnset());
-    auto result = watchpointMap.add(std::make_tuple(structure->id(), bytecodeOffset), WTFMove(watchpoints));
-    ASSERT_UNUSED(result, result.isNewEntry);
+        if (current == slot.slotBase())
+            break;
+
+        current = asObject(structure->prototypeForLookup(globalObject));
+    }
 
     {
         ConcurrentJSLocker locker(codeBlock->m_lock);
-        if (slot.isUnset())
-            metadata.setUnsetMode(structure);
-        else {
-            ASSERT(slot.isValue());
-            metadata.setProtoLoadMode(structure, offset, slot.slotBase());
+
+        metadata.m_modeMetadata.setProtoLoadMode();
+
+        JSObject* current = asObject(structure->prototypeForLookup(globalObject));
+
+        unsigned bytecodeOffset = codeBlock->bytecodeOffset(pc);
+        while (1) {
+            Structure* structure = current->structure(vm);
+            auto* watchpoint = metadata.m_modeMetadata.protoLoadMode.watchpoints().add(codeBlock, structure, bytecodeOffset);
+            watchpoint->install();
+
+            if (current == slot.slotBase())
+                break;
+
+            current = asObject(structure->prototypeForLookup(globalObject));
         }
+
+        ProtoLoadEntry entry;
+        entry.structureID = structure->id();
+        entry.cachedOffset = slot.cachedOffset();
+        entry.cachedSlot = slot.slotBase();
+
+        metadata.m_modeMetadata.protoLoadMode.addCase(entry);
     }
+
     vm.heap.writeBarrier(codeBlock);
 }
 
@@ -764,8 +771,8 @@ static JSValue performLLIntGetByID(const Instruction* pc, CodeBlock* codeBlock, 
         && slot.isCacheable()
         && !slot.isUnset()) {
         {
-            StructureID oldStructureID;
-            switch (metadata.mode) {
+            StructureID oldStructureID = 0;
+            switch (metadata.m_modeMetadata.mode) {
             case GetByIdMode::Default:
                 oldStructureID = metadata.defaultMode.structureID;
                 break;
@@ -773,10 +780,14 @@ static JSValue performLLIntGetByID(const Instruction* pc, CodeBlock* codeBlock, 
                 oldStructureID = metadata.unsetMode.structureID;
                 break;
             case GetByIdMode::ProtoLoad:
-                oldStructureID = metadata.protoLoadMode.structureID;
+                if (metadata.m_modeMetadata.protoLoadMode.numCases() == 1) { // OOPS: maybe consider all cases?
+                    metadata.m_modeMetadata.protoLoadMode.forEachCase([&] (const ProtoLoadEntry& entry) {
+                        oldStructureID = entry.structureID;
+                    });
+                }
                 break;
             default:
-                oldStructureID = 0;
+                break;
             }
             if (oldStructureID) {
                 Structure* a = vm.heap.structureIDTable().get(oldStructureID);
@@ -797,19 +808,16 @@ static JSValue performLLIntGetByID(const Instruction* pc, CodeBlock* codeBlock, 
             metadata.clearToDefaultModeWithoutCache();
 
             // Prevent the prototype cache from ever happening.
-            metadata.hitCountForLLIntCaching = 0;
+
+            //metadata.m_modeMetadata.hitCountForLLIntCaching = 0;
         
             if (structure->propertyAccessesAreCacheable() && !structure->needImpurePropertyWatchpoint()) {
                 metadata.defaultMode.structureID = structure->id();
                 metadata.defaultMode.cachedOffset = slot.cachedOffset();
                 vm.heap.writeBarrier(codeBlock);
             }
-        } else if (UNLIKELY(metadata.hitCountForLLIntCaching && slot.isValue())) {
-            ASSERT(slot.slotBase() != baseValue);
-
-            if (!(--metadata.hitCountForLLIntCaching))
-                setupGetByIdPrototypeCache(globalObject, vm, codeBlock, pc, metadata, baseCell, slot, ident);
-        }
+        } else if (slot.isValue())
+            setupGetByIdPrototypeCache(globalObject, vm, codeBlock, pc, metadata, baseCell, slot, ident);
     } else if (!LLINT_ALWAYS_ACCESS_SLOW && isJSArray(baseValue) && ident == vm.propertyNames->length) {
         {
             ConcurrentJSLocker locker(codeBlock->m_lock);

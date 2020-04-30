@@ -171,7 +171,7 @@ inline FunctionPtr<CFunctionPtrTag> appropriateOptimizingGetByFunction(GetByKind
     RELEASE_ASSERT_NOT_REACHED();
 }
 
-inline FunctionPtr<CFunctionPtrTag> appropriateGetByFunction(GetByKind kind)
+FunctionPtr<CFunctionPtrTag> appropriateGetByFunction(GetByKind kind)
 {
     switch (kind) {
     case GetByKind::Normal:
@@ -422,6 +422,76 @@ static InlineCacheAction tryCacheGetBy(JSGlobalObject* globalObject, CodeBlock* 
         result = stubInfo.addAccessCase(locker, globalObject, codeBlock, ECMAMode::strict(), propertyName, WTFMove(newCase));
 
         if (result.generatedSomeCode()) {
+            /*
+            if (stubInfo.cacheType() == CacheType::Stub) {
+                static double total;
+                static double mono;
+                static double protoLoadCount;
+                static double protoGetterCount;
+                static double protoCustomCount;
+                static double missCount;
+                ++total;
+
+                bool protoLoad = false;
+                bool protoGetter = false;
+                bool protoCustom = false;
+                bool self = false;
+                bool miss = false;
+                bool bad = false;
+                PolymorphicAccess* poly = stubInfo.u.stub;
+
+                for (unsigned i = 0; i < poly->size(); ++i) {
+                    const AccessCase& access = poly->at(i);
+                    if (access.hasAlternateBase()) {
+                        switch (access.type()) {
+                        case AccessCase::Load:
+                            protoLoad = true;
+                            break;
+                        case AccessCase::Getter:
+                            protoGetter = true;
+                            break;
+                        case AccessCase::CustomAccessorGetter:
+                            protoCustom = true;
+                            break;
+                        default:
+                            bad = true;
+                            break;
+                        }
+                    } else if (access.type() == AccessCase::Load) {
+                        self = true;
+                    } else if (access.type() == AccessCase::Miss) {
+                        miss = true;
+                    } else {
+                        bad = true;
+                    }
+                }
+
+                if (!bad) {
+                    if (protoLoad + protoGetter + protoCustom + self + miss == 1) {
+                        if (protoLoad)
+                            ++protoLoadCount;
+                        if (protoCustom)
+                            ++protoCustomCount;
+                        if (protoGetter)
+                            ++protoGetterCount;
+                        if (miss)
+                            ++missCount;
+                        if (self)
+                            ++mono;
+                    }
+                }
+
+                if (static_cast<uint64_t>(total) % 100 == 0) {
+                    dataLogLn("proto load %: ", protoLoadCount/total);
+                    dataLogLn("proto custom %: ", protoCustomCount/total);
+                    dataLogLn("proto getter %: ", protoGetterCount/total);
+                    dataLogLn("mono %: ", mono/total);
+                    dataLogLn("miss %: ", missCount/total);
+                    dataLogLn();
+                }
+            }
+            */
+
             LOG_IC((ICEvent::GetByReplaceWithJump, baseValue.classInfoOrNull(vm), Identifier::fromUid(vm, propertyName.uid()), slot.slotBase() == baseValue));
             
             RELEASE_ASSERT(result.code());

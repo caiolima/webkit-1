@@ -25,7 +25,6 @@
 
 #pragma once
 
-#include "BytecodeStructs.h"
 #include "CodeBlock.h"
 #include "ObjectPropertyCondition.h"
 #include "PackedCellPtr.h"
@@ -50,6 +49,23 @@ private:
     JSC_WATCHPOINT_FIELD(PackedCellPtr<CodeBlock>, m_owner);
     JSC_WATCHPOINT_FIELD(Packed<unsigned>, m_bytecodeOffset);
     JSC_WATCHPOINT_FIELD(ObjectPropertyCondition, m_key);
+};
+
+class LLIntInlineCacheClearingStructureTransitionWatchpoint final : public Watchpoint {
+public:
+    LLIntInlineCacheClearingStructureTransitionWatchpoint(CodeBlock*, Structure*, unsigned bytecodeOffset);
+
+    void install();
+
+    void fireInternal(VM&, const FireDetail&);
+
+    Structure* structure() { return m_structure.get(); }
+
+private:
+    // Own destructor may not be called. Keep members trivially destructible.
+    JSC_WATCHPOINT_FIELD(PackedCellPtr<CodeBlock>, m_owner);
+    JSC_WATCHPOINT_FIELD(PackedCellPtr<Structure>, m_structure);
+    JSC_WATCHPOINT_FIELD(Packed<unsigned>, m_bytecodeOffset);
 };
 
 } // namespace JSC

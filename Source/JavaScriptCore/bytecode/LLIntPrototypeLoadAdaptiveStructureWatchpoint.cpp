@@ -26,6 +26,7 @@
 #include "config.h"
 #include "LLIntPrototypeLoadAdaptiveStructureWatchpoint.h"
 
+#include "BytecodeStructs.h"
 #include "CodeBlock.h"
 #include "Instruction.h"
 #include "JSCellInlines.h"
@@ -61,30 +62,57 @@ void LLIntPrototypeLoadAdaptiveStructureWatchpoint::fireInternal(VM& vm, const F
 
     auto& instruction = m_owner->instructions().at(m_bytecodeOffset.get());
     switch (instruction->opcodeID()) {
-    case op_get_by_id:
-        clearLLIntGetByIdCache(instruction->as<OpGetById>().metadata(m_owner.get()).m_modeMetadata);
-        break;
-
-    case op_iterator_open:
-        clearLLIntGetByIdCache(instruction->as<OpIteratorOpen>().metadata(m_owner.get()).m_modeMetadata);
-        break;
-
-    case op_iterator_next: {
-        auto& metadata = instruction->as<OpIteratorNext>().metadata(m_owner.get());
-        clearLLIntGetByIdCache(metadata.m_doneModeMetadata);
-        clearLLIntGetByIdCache(metadata.m_valueModeMetadata);
-        break;
-    }
-
-    default:
-        RELEASE_ASSERT_NOT_REACHED();
-        break;
+        case op_get_by_id:
+            clearLLIntGetByIdCache(instruction->as<OpGetById>().metadata(m_owner.get()).m_modeMetadata);
+            break;
+            
+        case op_iterator_open:
+            clearLLIntGetByIdCache(instruction->as<OpIteratorOpen>().metadata(m_owner.get()).m_modeMetadata);
+            break;
+            
+        case op_iterator_next: {
+            auto& metadata = instruction->as<OpIteratorNext>().metadata(m_owner.get());
+            clearLLIntGetByIdCache(metadata.m_doneModeMetadata);
+            clearLLIntGetByIdCache(metadata.m_valueModeMetadata);
+            break;
+        }
+            
+        default:
+            RELEASE_ASSERT_NOT_REACHED();
+            break;
     }
 }
 
 void LLIntPrototypeLoadAdaptiveStructureWatchpoint::clearLLIntGetByIdCache(GetByIdModeMetadata& metadata)
 {
     metadata.clearToDefaultModeWithoutCache();
+}
+    
+LLIntInlineCacheClearingStructureTransitionWatchpoint::LLIntInlineCacheClearingStructureTransitionWatchpoint(CodeBlock* owner, Structure* structure, unsigned bytecodeOffset)
+    : Watchpoint(Watchpoint::Type::LLIntInlineCacheClearingStructureTransition)
+    , m_owner(owner)
+    , m_structure(structure)
+    , m_bytecodeOffset(bytecodeOffset)
+{
+    ASSERT(m_structure->transitionWatchpointSetIsStillValid());
+}
+
+void LLIntInlineCacheClearingStructureTransitionWatchpoint::install()
+{
+    ASSERT(m_structure->transitionWatchpointSetIsStillValid());
+
+    m_structure->addTransitionWatchpoint(this);
+}
+
+void LLIntInlineCacheClearingStructureTransitionWatchpoint::fireInternal(VM&, const FireDetail&)
+{
+    if (!m_owner->isLive())
+        return;
+
+    ConcurrentJSLocker locker(m_owner->m_lock);
+    auto& instruction = m_owner->instructions().at(m_bytecodeOffset.get());
+    auto& metadata = instruction->as<OpGetById>().metadata(m_owner.get());
+    metadata.m_modeMetadata.clearToDefaultModeWithoutCache();
 }
 
 } // namespace JSC

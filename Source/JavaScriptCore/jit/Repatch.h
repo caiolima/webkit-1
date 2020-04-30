@@ -48,6 +48,7 @@ enum class DelByKind {
     NormalByVal
 };
 
+FunctionPtr<CFunctionPtrTag> appropriateGetByFunction(GetByKind);
 void repatchArrayGetByVal(JSGlobalObject*, CodeBlock*, JSValue base, JSValue index, StructureStubInfo&);
 void repatchGetBy(JSGlobalObject*, CodeBlock*, JSValue, CacheableIdentifier, const PropertySlot&, StructureStubInfo&, GetByKind);
 void repatchPutByID(JSGlobalObject*, CodeBlock*, JSValue, Structure*, CacheableIdentifier, const PutPropertySlot&, StructureStubInfo&, PutKind);

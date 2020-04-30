@@ -25,6 +25,8 @@
 
 #pragma once
 
+#include "LLIntPrototypeLoadAdaptiveStructureWatchpoint.h"
+
 namespace JSC {
 
 enum class GetByIdMode : uint8_t {
@@ -53,10 +55,55 @@ struct GetByIdModeMetadataArrayLength {
 };
 static_assert(sizeof(GetByIdModeMetadataArrayLength) == 12);
 
-struct GetByIdModeMetadataProtoLoad {
+struct ProtoLoadEntry {
     StructureID structureID;
     PropertyOffset cachedOffset;
     JSObject* cachedSlot;
+};
+
+struct GetByIdModeMetadataProtoLoad {
+    size_t numCases() const
+    {
+        if (!cases)
+            return 0;
+        size_t i = 0;
+        for (auto* ptr = cases; ptr->structureID; ++ptr)
+            ++i;
+        return i;
+    }
+
+    template <typename F>
+    void forEachCase(F f)
+    {
+        if (!cases)
+            return;
+        for (auto* ptr = cases; ptr->structureID; ++ptr)
+            f(*ptr);
+    }
+
+    void addCase(ProtoLoadEntry entry)
+    {
+        size_t numCases = this->numCases();
+        ProtoLoadEntry* array = static_cast<ProtoLoadEntry*>(fastMalloc(sizeof(ProtoLoadEntry) * (numCases + 2)));
+        if (cases) {
+            memcpy(array + 1, cases, sizeof(ProtoLoadEntry) * (numCases + 1));
+            ASSERT(array[numCases + 1].structureID == 0);
+            fastFree(cases);
+        } else
+            array[numCases + 1].structureID = 0;
+
+        cases = array;
+        *cases = entry;
+    }
+
+    Bag<LLIntInlineCacheClearingStructureTransitionWatchpoint>& watchpoints()
+    {
+        return *bitwise_cast<Bag<LLIntInlineCacheClearingStructureTransitionWatchpoint>*>(&m_watchpoints);
+    }
+
+    static_assert(sizeof(uintptr_t) == sizeof(Bag<LLIntInlineCacheClearingStructureTransitionWatchpoint>));
+    uintptr_t m_watchpoints; // Bag<LLIntInlineCacheClearingStructureTransitionWatchpoint> 
+    ProtoLoadEntry* cases;
 };
 #if CPU(LITTLE_ENDIAN) && CPU(ADDRESS64)
 static_assert(sizeof(GetByIdModeMetadataProtoLoad) == 16);
@@ -78,7 +125,8 @@ union GetByIdModeMetadata {
     void clearToDefaultModeWithoutCache();
     void setUnsetMode(Structure*);
     void setArrayLengthMode();
-    void setProtoLoadMode(Structure*, PropertyOffset, JSObject*);
+    void setProtoLoadMode();
+    void freeOldIfNeeded();
 
     struct {
         uint32_t padding1;
@@ -108,7 +156,8 @@ struct GetByIdModeMetadata {
     void clearToDefaultModeWithoutCache();
     void setUnsetMode(Structure*);
     void setArrayLengthMode();
-    void setProtoLoadMode(Structure*, PropertyOffset, JSObject*);
+    void setProtoLoadMode();
+    void freeOldIfNeeded();
 
     union {
         GetByIdModeMetadataDefault defaultMode;
@@ -121,8 +170,21 @@ struct GetByIdModeMetadata {
 };
 #endif
 
+inline void GetByIdModeMetadata::freeOldIfNeeded()
+{
+    if (mode == GetByIdMode::ProtoLoad) {
+        //dataLogLn("Freeing GetByIdModeMetadata");
+        protoLoadMode.watchpoints().clear();
+        if (protoLoadMode.cases)
+            fastFree(protoLoadMode.cases);
+    }
+}
+
 inline void GetByIdModeMetadata::clearToDefaultModeWithoutCache()
 {
+    // OOPS: stop leaking memory.
+
+    freeOldIfNeeded();
     mode = GetByIdMode::Default;
     defaultMode.structureID = 0;
     defaultMode.cachedOffset = 0;
@@ -130,32 +192,32 @@ inline void GetByIdModeMetadata::clearToDefaultModeWithoutCache()
 
 inline void GetByIdModeMetadata::setUnsetMode(Structure* structure)
 {
+    freeOldIfNeeded();
     mode = GetByIdMode::Unset;
     unsetMode.structureID = structure->id();
 }
 
 inline void GetByIdModeMetadata::setArrayLengthMode()
 {
+    freeOldIfNeeded();
     mode = GetByIdMode::ArrayLength;
     new (&arrayLengthMode.arrayProfile) ArrayProfile;
     // Prevent the prototype cache from ever happening.
     hitCountForLLIntCaching = 0;
 }
 
-inline void GetByIdModeMetadata::setProtoLoadMode(Structure* structure, PropertyOffset offset, JSObject* cachedSlot)
+inline void GetByIdModeMetadata::setProtoLoadMode()
 {
+    if (mode == GetByIdMode::ProtoLoad)
+        return;
     mode = GetByIdMode::ProtoLoad; // This must be first set. In 64bit architecture, this field is shared with protoLoadMode.cachedSlot.
-    protoLoadMode.structureID = structure->id();
-    protoLoadMode.cachedOffset = offset;
-    // We know that this pointer will remain valid because it will be cleared by either a watchpoint fire or
-    // during GC when we clear the LLInt caches.
-    protoLoadMode.cachedSlot = cachedSlot;
-
     ASSERT(mode == GetByIdMode::ProtoLoad);
-    ASSERT(!hitCountForLLIntCaching);
-    ASSERT(protoLoadMode.structureID == structure->id());
-    ASSERT(protoLoadMode.cachedOffset == offset);
-    ASSERT(protoLoadMode.cachedSlot == cachedSlot);
+
+    // OOPS: This struct gets zeroed during metadata construction, so we won't go down this path
+    // the first time we setProtoLoadMode. That's somewhat problematic since it means we won't
+    // call this Bags ctor. However, Bag's ctor just zeroes the pointer. Maybe we can rely on that.
+    new (&protoLoadMode.watchpoints()) Bag<LLIntInlineCacheClearingStructureTransitionWatchpoint>;
+    protoLoadMode.cases = nullptr;
 }
 
 } // namespace JSC

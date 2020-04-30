@@ -62,6 +62,8 @@ public:
     void finalize(
         LinkBuffer& fastPathLinkBuffer, LinkBuffer& slowPathLinkBuffer,
         CodeLocationLabel<JITStubRoutinePtrTag> start);
+
+    MacroAssembler::Call slowPathCall() const { return m_slowPathCall; }
     
 protected:
     CodeBlock* m_codeBlock;

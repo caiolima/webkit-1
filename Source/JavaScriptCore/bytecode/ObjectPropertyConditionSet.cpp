@@ -479,6 +479,22 @@ ObjectPropertyConditionSet generateConditionsForPrototypeEquivalenceConcurrently
         });
 }
 
+// OOPS: Just call "non concurrent" one? I think it now just works concurrently if we pass in null for owner...
+ObjectPropertyConditionSet generateConditionsForPrototypePropertyHitConcurrently(
+    VM& vm, JSGlobalObject* globalObject, Structure* headStructure, JSObject* prototype, UniquedStringImpl* uid)
+{
+    return generateConditions(vm, globalObject, headStructure, prototype,
+        [&] (Vector<ObjectPropertyCondition>& conditions, JSObject* object) -> bool {
+            PropertyCondition::Kind kind =
+                object == prototype ? PropertyCondition::Presence : PropertyCondition::Absence;
+            ObjectPropertyCondition result = generateCondition(vm, nullptr, object, uid, kind);
+            if (!result)
+                return false;
+            conditions.append(result);
+            return true;
+        });
+}
+
 ObjectPropertyConditionSet generateConditionsForPropertyMissConcurrently(
     VM& vm, JSGlobalObject* globalObject, Structure* headStructure, UniquedStringImpl* uid)
 {
