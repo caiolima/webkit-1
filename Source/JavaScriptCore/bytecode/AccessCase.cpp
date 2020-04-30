@@ -63,7 +63,8 @@ AccessCase::AccessCase(VM& vm, JSCell* owner, AccessType type, CacheableIdentifi
     , m_polyProtoAccessChain(WTFMove(prototypeAccessChain))
     , m_identifier(identifier)
 {
-    m_structure.setMayBeNull(vm, owner, structure);
+    if (owner) // OOPS: verify this is ok for CJIT.
+        m_structure.setMayBeNull(vm, owner, structure);
     m_conditionSet = conditionSet;
     RELEASE_ASSERT(m_conditionSet.isValid());
 }
@@ -180,7 +181,8 @@ std::unique_ptr<AccessCase> AccessCase::fromStructureStubInfo(
 
 bool AccessCase::hasAlternateBase() const
 {
-    return !conditionSet().isEmpty();
+    //return !conditionSet().isEmpty();
+    return conditionSet().hasOneSlotBaseCondition();
 }
 
 JSObject* AccessCase::alternateBase() const

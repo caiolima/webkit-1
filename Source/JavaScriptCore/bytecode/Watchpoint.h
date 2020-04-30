@@ -113,6 +113,7 @@ class WatchpointSet;
     macro(AdaptiveInferredPropertyValueProperty, AdaptiveInferredPropertyValueWatchpointBase::PropertyWatchpoint) \
     macro(CodeBlockJettisoning, CodeBlockJettisoningWatchpoint) \
     macro(LLIntPrototypeLoadAdaptiveStructure, LLIntPrototypeLoadAdaptiveStructureWatchpoint) \
+    macro(LLIntInlineCacheClearingStructureTransition, LLIntInlineCacheClearingStructureTransitionWatchpoint) \
     macro(FunctionRareDataAllocationProfileClearing, FunctionRareData::AllocationProfileClearingWatchpoint) \
     macro(CachedSpecialPropertyAdaptiveStructure, CachedSpecialPropertyAdaptiveStructureWatchpoint)
 

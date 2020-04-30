@@ -87,6 +87,7 @@ public:
     void initInByIdSelf(const ConcurrentJSLockerBase&, CodeBlock*, Structure* baseObjectStructure, PropertyOffset, CacheableIdentifier);
 
     AccessGenerationResult addAccessCase(const GCSafeConcurrentJSLocker&, JSGlobalObject*, CodeBlock*, ECMAMode, CacheableIdentifier, std::unique_ptr<AccessCase>);
+    // AccessGenerationResult primeAccessCases(const GCSafeConcurrentJSLocker&, CodeBlock*, Vector<std::unique_ptr<AccessCase>, 2>);
 
     void reset(const ConcurrentJSLockerBase&, CodeBlock*);
 
@@ -410,6 +411,22 @@ inline auto appropriateOptimizingGetByIdFunction(AccessType type) -> decltype(&o
         return operationGetByIdDirectOptimize;
     case AccessType::GetPrivateName:
         return operationGetPrivateNameByIdOptimize;
+    case AccessType::GetByIdWithThis:
+    default:
+        ASSERT_NOT_REACHED();
+        return nullptr;
+    }
+}
+
+inline auto appropriateSlowPathGetByIdFunction(AccessType type) -> decltype(&operationGetById)
+{
+    switch (type) {
+    case AccessType::GetById:
+        return operationGetById;;
+    case AccessType::TryGetById:
+        return operationTryGetById;
+    case AccessType::GetByIdDirect:
+        return operationGetByIdDirect;
     case AccessType::GetByIdWithThis:
     default:
         ASSERT_NOT_REACHED();

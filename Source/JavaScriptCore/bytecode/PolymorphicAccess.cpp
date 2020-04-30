@@ -343,6 +343,17 @@ AccessGenerationResult PolymorphicAccess::addCase(
     return addCases(locker, vm, codeBlock, stubInfo, WTFMove(newAccesses));
 }
 
+AccessGenerationResult PolymorphicAccess::primeCases(
+    const GCSafeConcurrentJSLocker& locker, VM& vm, CodeBlock* codeBlock, StructureStubInfo& stubInfo, Vector<std::unique_ptr<AccessCase>, 2> cases)
+{
+    RELEASE_ASSERT(!size());
+    for (auto& caseToAdd : cases) {
+        commit(locker, vm, m_watchpoints, codeBlock, stubInfo, *caseToAdd);
+        m_list.append(WTFMove(caseToAdd));
+    }
+    return regenerate(locker, vm, codeBlock, stubInfo);
+}
+
 bool PolymorphicAccess::visitWeak(VM& vm) const
 {
     for (unsigned i = 0; i < size(); ++i) {

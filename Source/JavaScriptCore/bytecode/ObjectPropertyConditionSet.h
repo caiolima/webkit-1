@@ -182,8 +182,9 @@ ObjectPropertyConditionSet generateConditionsForInstanceOf(
     VM&, JSCell* owner, JSGlobalObject*, Structure* headStructure, JSObject* prototype, bool shouldHit);
 
 ObjectPropertyConditionSet generateConditionsForPrototypeEquivalenceConcurrently(
-    VM&, JSGlobalObject*, Structure* headStructure, JSObject* prototype,
-    UniquedStringImpl* uid);
+    VM&, JSGlobalObject*, Structure* headStructure, JSObject* prototype, UniquedStringImpl* uid);
+ObjectPropertyConditionSet generateConditionsForPrototypePropertyHitConcurrently(
+    VM&, JSGlobalObject*, Structure* headStructure, JSObject* prototype, UniquedStringImpl* uid);
 ObjectPropertyConditionSet generateConditionsForPropertyMissConcurrently(
     VM&, JSGlobalObject*, Structure* headStructure, UniquedStringImpl* uid);
 ObjectPropertyConditionSet generateConditionsForPropertySetterMissConcurrently(

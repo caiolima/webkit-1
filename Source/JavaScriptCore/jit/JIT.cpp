@@ -655,6 +655,7 @@ void JIT::privateCompileSlowCases()
 
     RELEASE_ASSERT(bytecodeCountHavingSlowCase == m_bytecodeCountHavingSlowCase);
     RELEASE_ASSERT(m_getByIdIndex == m_getByIds.size());
+    RELEASE_ASSERT(m_getByIds.size() == m_getByIdICs.size());
     RELEASE_ASSERT(m_getByIdWithThisIndex == m_getByIdsWithThis.size());
     RELEASE_ASSERT(m_putByIdIndex == m_putByIds.size());
     RELEASE_ASSERT(m_inByIdIndex == m_inByIds.size());
@@ -909,6 +910,49 @@ CompilationResult JIT::link()
     finalizeInlineCaches(m_inByIds, patchBuffer);
     finalizeInlineCaches(m_instanceOfs, patchBuffer);
     finalizeInlineCaches(m_privateBrandAccesses, patchBuffer);
+
+    for (size_t i = 0; i < m_getByIdICs.size(); ++i) {
+        DeferGC deferGC(m_vm->heap);
+
+        auto entries = m_getByIdICs[i];
+        if (!entries)
+            continue;
+
+        Vector<std::unique_ptr<AccessCase>, 2> accessCases;
+        HashSet<Structure*> seenStructures;
+        bool ok = true;
+        const Identifier* ident = entries->second;
+        for (auto& entry : entries->first) {
+            Structure* structure = m_vm->getStructure(entry.structureID);
+            if (!seenStructures.add(structure).isNewEntry)
+                continue;
+
+            ObjectPropertyConditionSet conditionSet = generateConditionsForPrototypePropertyHitConcurrently(*m_vm, m_codeBlock->globalObject(), structure, entry.cachedSlot, ident->impl());
+            if (!conditionSet.isValid()) {
+                ok = false;
+                break;
+            }
+
+            accessCases.append(
+                ProxyableAccessCase::create(*m_vm, m_codeBlock, AccessCase::Load, *ident, conditionSet.slotBaseCondition().offset(), structure, conditionSet));
+        }
+
+        if (!ok)
+            continue;
+
+        {
+            GCSafeConcurrentJSLocker locker(m_codeBlock->m_lock, m_vm->heap);
+
+            StructureStubInfo* stubInfo = m_getByIds[i].stubInfo();
+            AccessGenerationResult result = stubInfo->primeAccessCases(locker, m_codeBlock, WTFMove(accessCases));
+            if (result.generatedSomeCode()) {
+                //dataLogLn("Primed PolymorphicAccess: ", *stubInfo->u.stub);
+                m_linkBuffer->link(m_getByIds[i].slowPathJump(), CodeLocationLabel<JITStubRoutinePtrTag>(result.code()));
+                if (result.generatedFinalCode())
+                    m_linkBuffer->link(m_getByIds[i].slowPathCall(), FunctionPtr(appropriateSlowPathGetByIdFunction(stubInfo->accessType)));
+            }
+        }
+    }
 
     if (m_byValCompilationInfo.size()) {
         CodeLocationLabel<ExceptionHandlerPtrTag> exceptionHandler = patchBuffer.locationOf<ExceptionHandlerPtrTag>(m_exceptionHandler);

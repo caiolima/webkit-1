@@ -1505,13 +1505,19 @@ macro performGetByIDHelper(opcodeStruct, modeMetadataName, valueProfileName, slo
 .opGetByIdProtoLoad:
     bbneq t1, constexpr GetByIdMode::ProtoLoad, .opGetByIdArrayLength
     loadi JSCell::m_structureID[t3], t1
-    loadi %opcodeStruct%::Metadata::%modeMetadataName%.protoLoadMode.structureID[t2], t3
-    bineq t3, t1, slowLabel
-    loadis %opcodeStruct%::Metadata::%modeMetadataName%.protoLoadMode.cachedOffset[t2], t1
-    loadp %opcodeStruct%::Metadata::%modeMetadataName%.protoLoadMode.cachedSlot[t2], t3
+    loadp %opcodeStruct%::Metadata::m_modeMetadata.%modeMetadataName%.cases[t2], t3
+.casesLoop:
+    loadi ProtoLoadEntry::structureID[t3], t5
+    bineq t5, t1, .maybeNext
+    loadis ProtoLoadEntry::cachedOffset[t3], t1
+    loadp ProtoLoadEntry::cachedSlot[t3], t3
     loadPropertyAtVariableOffset(t1, t3, t0)
     valueProfile(opcodeStruct, valueProfileName, t2, t0)
     return(t0)
+.maybeNext:
+    btiz t5, .opGetByIdSlow
+    addq sizeof ProtoLoadEntry, t3
+    jmp .casesLoop
 
 .opGetByIdArrayLength:
     bbneq t1, constexpr GetByIdMode::ArrayLength, .opGetByIdUnset

@@ -982,6 +982,7 @@ namespace JSC {
         Vector<Label> m_labels;
         HashMap<BytecodeIndex, Label> m_checkpointLabels;
         Vector<JITGetByIdGenerator> m_getByIds;
+        Vector<Optional<std::pair<Vector<ProtoLoadEntry>, const Identifier*>>> m_getByIdICs;
         Vector<JITGetByValGenerator> m_getByVals;
         Vector<JITGetByIdWithThisGenerator> m_getByIdsWithThis;
         Vector<JITPutByIdGenerator> m_putByIds;

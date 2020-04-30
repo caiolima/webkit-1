@@ -852,6 +852,13 @@ CodeBlock::~CodeBlock()
 
     if (JITCode::isOptimizingJIT(jitType()))
         jitCode()->dfgCommon()->clearWatchpoints();
+
+    if (m_metadata && JITCode::couldBeInterpreted(jitType())) {
+        m_metadata->forEach<OpGetById>([&] (auto& metadata) {
+            metadata.m_modeMetadata.freeOldIfNeeded();
+        });
+    }
+
 #endif
     vm.heap.codeBlockSet().remove(this);
     
@@ -1259,11 +1266,33 @@ void CodeBlock::finalizeLLIntInlineCaches()
         auto clearIfNeeded = [&] (GetByIdModeMetadata& modeMetadata, ASCIILiteral opName) {
             if (modeMetadata.mode != GetByIdMode::Default)
                 return;
-            StructureID oldStructureID = modeMetadata.defaultMode.structureID;
-            if (!oldStructureID || vm.heap.isMarked(vm.heap.structureIDTable().get(oldStructureID)))
-                return;
-            dataLogLnIf(Options::verboseOSR(), "Clearing ", opName, " LLInt property access.");
-            LLIntPrototypeLoadAdaptiveStructureWatchpoint::clearLLIntGetByIdCache(modeMetadata);
+            
+            if (modeMetadata.mode == GetByIdMode::Default) {
+                StructureID oldStructureID = modeMetadata.defaultMode.structureID;
+                if (!oldStructureID || vm.heap.isMarked(vm.heap.structureIDTable().get(oldStructureID)))
+                    return;
+                if (Options::verboseOSR())
+                    dataLogF("Clearing LLInt property access.\n");
+                modeMetadata.clearToDefaultModeWithoutCache();
+            } else if (modeMetadata.mode == GetByIdMode::ProtoLoad) {
+                // OOPS: clear these inside destructor too.
+                bool ok = true;
+                for (auto* watchpoint : modeMetadata.protoLoadMode.watchpoints()) {
+                    if  (!vm.heap.isMarked(watchpoint->structure())) {
+                        ok = false;
+                        break;
+                    }
+                }
+                if (ok) {
+                    modeMetadata.protoLoadMode.forEachCase([&] (const ProtoLoadEntry& entry) {
+                        ok &= vm.heap.isMarked(vm.heap.structureIDTable().get(entry.structureID));
+                        ok &= vm.heap.isMarked(entry.cachedSlot);
+                    });
+                }
+                
+                if (!ok)
+                    modeMetadata.clearToDefaultModeWithoutCache();
+            }
         };
 
         m_metadata->forEach<OpIteratorOpen>([&] (auto& metadata) {
@@ -1423,6 +1452,7 @@ void CodeBlock::finalizeLLIntInlineCaches()
 
     // We can't just remove all the sets when we clear the caches since we might have created a watchpoint set
     // then cleared the cache without GCing in between.
+    /*
     m_llintGetByIdWatchpointMap.removeIf([&] (const StructureWatchpointMap::KeyValuePairType& pair) -> bool {
         auto clear = [&] () {
             auto& instruction = instructions().at(std::get<1>(pair.key));
@@ -1463,6 +1493,7 @@ void CodeBlock::finalizeLLIntInlineCaches()
 
         return false;
     });
+    */
 
     forEachLLIntCallLinkInfo([&](LLIntCallLinkInfo& callLinkInfo) {
         if (callLinkInfo.isLinked() && !vm.heap.isMarked(callLinkInfo.callee())) {
