@@ -237,27 +237,6 @@ AccessGenerationResult StructureStubInfo::addAccessCase(
     return result;
 }
 
-AccessGenerationResult StructureStubInfo::primeAccessCases(const GCSafeConcurrentJSLocker& locker, CodeBlock* codeBlock, Vector<std::unique_ptr<AccessCase>, 2> cases)
-{
-    checkConsistency();
-
-    VM& vm = codeBlock->vm();
-    ASSERT(vm.heap.isDeferred());
-
-    std::unique_ptr<PolymorphicAccess> access = makeUnique<PolymorphicAccess>();
-    AccessGenerationResult result = access->primeCases(locker, vm, codeBlock, *this, WTFMove(cases));
-
-    if (result.generatedSomeCode()) {
-        setCacheType(CacheType::Stub);
-        u.stub = access.release();
-        bufferingCountdown = Options::repatchBufferingCountdown();
-    }
-
-    vm.heap.writeBarrier(codeBlock);
-
-    return result;
-}
-
 void StructureStubInfo::reset(const ConcurrentJSLockerBase& locker, CodeBlock* codeBlock)
 {
     clearBufferedStructures();

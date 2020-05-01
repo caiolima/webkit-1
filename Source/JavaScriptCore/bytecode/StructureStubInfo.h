@@ -418,22 +418,6 @@ inline auto appropriateOptimizingGetByIdFunction(AccessType type) -> decltype(&o
     }
 }
 
-inline auto appropriateSlowPathGetByIdFunction(AccessType type) -> decltype(&operationGetById)
-{
-    switch (type) {
-    case AccessType::GetById:
-        return operationGetById;;
-    case AccessType::TryGetById:
-        return operationTryGetById;
-    case AccessType::GetByIdDirect:
-        return operationGetByIdDirect;
-    case AccessType::GetByIdWithThis:
-    default:
-        ASSERT_NOT_REACHED();
-        return nullptr;
-    }
-}
-
 inline auto appropriateGenericGetByIdFunction(AccessType type) -> decltype(&operationGetByIdGeneric)
 {
     switch (type) {
