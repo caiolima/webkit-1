@@ -1652,7 +1652,6 @@ void Heap::stopThePeriphery(GCConductor conn)
         if (JITWorklist::ensureGlobalWorklist().completeAllForVM(m_vm)
             && conn == GCConductor::Collector)
             setGCDidJIT();
-        */
     }
 #endif // ENABLE(JIT)
     UNUSED_PARAM(conn);

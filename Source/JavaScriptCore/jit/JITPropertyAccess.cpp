@@ -655,7 +655,6 @@ void JIT::emit_op_try_get_by_id(const Instruction* currentInstruction)
     gen.generateFastPath(*this);
     addSlowCase(gen.slowPathJump());
     m_getByIds.append(gen);
-    m_getByIdICs.append(WTF::nullopt);
     
     emitValueProfilingSite(bytecode.metadata(m_codeBlock), resultRegs);
     emitPutVirtualRegister(resultVReg);
@@ -697,7 +696,6 @@ void JIT::emit_op_get_by_id_direct(const Instruction* currentInstruction)
     gen.generateFastPath(*this);
     addSlowCase(gen.slowPathJump());
     m_getByIds.append(gen);
-    m_getByIdICs.append(WTF::nullopt);
 
     emitValueProfilingSite(bytecode.metadata(m_codeBlock), resultRegs);
     emitPutVirtualRegister(resultVReg);
@@ -738,54 +736,12 @@ void JIT::emit_op_get_by_id(const Instruction* currentInstruction)
         notArrayLengthMode.link(this);
     }
 
-    Optional<Vector<ProtoLoadEntry>> cases;
-
-    {
-        ConcurrentJSLocker locker(m_codeBlock->m_lock);
-        if (metadata.m_modeMetadata.mode == GetByIdMode::ProtoLoad) {
-            cases = Vector<ProtoLoadEntry>();
-            metadata.m_modeMetadata.protoLoadMode.forEachCase([&] (const ProtoLoadEntry& entry) {
-                cases->append(entry);
-            });
-
-            if (cases->isEmpty())
-                cases  = WTF::nullopt;
-        }
-    }
-
-    /*
-    Optional<Vector<AccessCase>> accessCases;
-    if (cases) {
-        accessCases = Vector<AccessCase>();
-        HashSet<Structure*> seenStructures;
-        for (auto& entry : *cases) {
-            Structure* structure = m_vm->getStructure(entry.structureID);
-            if (!seenStructures.add(structure).isNewEntry)
-                continue;
-
-            ObjectPropertyConditionSet conditionSet = generateConditionsForPrototypePropertyHitConcurrently(*m_vm, m_codeBlock->globalObject(), structure, entry.cachedSlot, ident->impl());
-            if (!conditionSet.isValid()) {
-                accessCases = WTF::nullopt;
-                break;
-            }
-
-            // OOPS: We need to make this safe to be concurrent. E.g, Identifier +1 ref(). Write barrier. Watchpoints. Etc.
-            auto accessCase = AccessCase::create(*m_vm, nullptr, AccessType::Load, (ident, conditionSet.slotBaseCondition().offset(), structure, conditionSet));
-            accessCases->append(WTFMove(accessCase));
-        }
-    }
-    */
-
     JITGetByIdGenerator gen(
         m_codeBlock, CodeOrigin(m_bytecodeIndex), CallSiteIndex(m_bytecodeIndex), RegisterSet::stubUnavailableRegisters(),
         CacheableIdentifier::createFromIdentifierOwnedByCodeBlock(m_codeBlock, *ident), JSValueRegs(regT0), JSValueRegs(regT0), AccessType::GetById);
     gen.generateFastPath(*this);
     addSlowCase(gen.slowPathJump());
     m_getByIds.append(gen);
-    if (cases)
-        m_getByIdICs.append({{ WTFMove(*cases), ident }});
-    else
-        m_getByIdICs.append(WTF::nullopt);
 
     emitValueProfilingSite(bytecode.metadata(m_codeBlock), regT0);
     emitPutVirtualRegister(resultVReg);

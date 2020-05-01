@@ -234,8 +234,7 @@ void JITWorklist::compileLater(CodeBlock* codeBlock, BytecodeIndex loopOSREntryB
         return;
     }
     
-    // OOPS
-    if (!Options::useConcurrentJIT() || true) {
+    if (!Options::useConcurrentJIT()) {
         Plan::compileNow(codeBlock, loopOSREntryBytecodeIndex);
         return;
     }

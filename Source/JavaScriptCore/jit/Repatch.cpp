@@ -171,7 +171,7 @@ inline FunctionPtr<CFunctionPtrTag> appropriateOptimizingGetByFunction(GetByKind
     RELEASE_ASSERT_NOT_REACHED();
 }
 
-FunctionPtr<CFunctionPtrTag> appropriateGetByFunction(GetByKind kind)
+inline FunctionPtr<CFunctionPtrTag> appropriateGetByFunction(GetByKind kind)
 {
     switch (kind) {
     case GetByKind::Normal:
