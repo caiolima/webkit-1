@@ -1452,7 +1452,6 @@ void CodeBlock::finalizeLLIntInlineCaches()
 
     // We can't just remove all the sets when we clear the caches since we might have created a watchpoint set
     // then cleared the cache without GCing in between.
-    /*
     m_llintGetByIdWatchpointMap.removeIf([&] (const StructureWatchpointMap::KeyValuePairType& pair) -> bool {
         auto clear = [&] () {
             auto& instruction = instructions().at(std::get<1>(pair.key));
@@ -1493,7 +1492,6 @@ void CodeBlock::finalizeLLIntInlineCaches()
 
         return false;
     });
-    */
 
     forEachLLIntCallLinkInfo([&](LLIntCallLinkInfo& callLinkInfo) {
         if (callLinkInfo.isLinked() && !vm.heap.isMarked(callLinkInfo.callee())) {

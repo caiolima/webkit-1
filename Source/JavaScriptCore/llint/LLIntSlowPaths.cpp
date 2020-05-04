@@ -693,7 +693,45 @@ LLINT_SLOW_PATH_DECL(slow_path_get_by_id_direct)
 }
 
 
-static void setupGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm, CodeBlock* codeBlock, const Instruction* pc, GetByIdModeMetadata& metadata, JSCell* baseCell, PropertySlot& slot, const Identifier& ident)
+static void setupUnsetGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm, CodeBlock* codeBlock, const Instruction* pc, OpGetById::Metadata& metadata, JSCell* baseCell, Structure* structure, PropertySlot& slot, const Identifier& ident)
+{
+    ASSERT(slot.isUnset());
+
+    if (structure->isDictionary()) {
+        if (structure->hasBeenFlattenedBefore())
+            return;
+        structure->flattenDictionaryStructure(vm, jsCast<JSObject*>(baseCell));
+    }
+
+    preparePrototypeChainForCaching(globalObject, baseCell, slot);
+
+    ObjectPropertyConditionSet conditions = generateConditionsForPropertyMiss(vm, codeBlock, globalObject, structure, ident.impl());
+
+    if (!conditions.isValid())
+        return;
+
+    unsigned bytecodeOffset = codeBlock->bytecodeOffset(pc);
+    CodeBlock::StructureWatchpointMap& watchpointMap = codeBlock->llintGetByIdWatchpointMap();
+    Vector<LLIntPrototypeLoadAdaptiveStructureWatchpoint> watchpoints;
+    watchpoints.reserveInitialCapacity(conditions.size());
+    for (ObjectPropertyCondition condition : conditions) {
+        if (!condition.isWatchable())
+            return;
+        watchpoints.uncheckedConstructAndAppend(codeBlock, condition, bytecodeOffset);
+        watchpoints.last().install(vm);
+    }
+
+    auto result = watchpointMap.add(std::make_tuple(structure->id(), bytecodeOffset), WTFMove(watchpoints));
+    ASSERT_UNUSED(result, result.isNewEntry);
+
+    {
+        ConcurrentJSLocker locker(codeBlock->m_lock);
+        metadata.m_modeMetadata.setUnsetMode(structure);
+    }
+    vm.heap.writeBarrier(codeBlock);
+}
+
+static void setupGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm, CodeBlock* codeBlock, const Instruction* pc, OpGetById::Metadata& metadata, JSCell* baseCell, PropertySlot& slot, const Identifier& ident)
 {
     UNUSED_PARAM(ident);
     Structure* structure = baseCell->structure(vm);
@@ -705,6 +743,11 @@ static void setupGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm, Cod
     
     if (structure->needImpurePropertyWatchpoint())
         return;
+
+    if (slot.isUnset()) {
+        setupUnsetGetByIdPrototypeCache(globalObject, vm, codeBlock, pc, metadata, baseCell, structure, slot, ident);
+        return;
+    }
 
     {
         auto result = preparePrototypeChainForCaching(globalObject, baseCell, slot);
