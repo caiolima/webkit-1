@@ -1292,6 +1292,14 @@ void CodeBlock::finalizeLLIntInlineCaches()
                 
                 if (!ok)
                     modeMetadata.clearToDefaultModeWithoutCache();
+            } else if (modeMetadata.mode == GetByIdMode::Unset) {
+                bool ok = true;
+                modeMetadata.unsetMode.forEachCase([&] (const UnsetEntry& entry) {
+                    ok &= vm.heap.isMarked(vm.heap.structureIDTable().get(entry.structureID));
+                });
+
+                if (!ok)
+                    modeMetadata.clearToDefaultModeWithoutCache();
             }
         };
 
