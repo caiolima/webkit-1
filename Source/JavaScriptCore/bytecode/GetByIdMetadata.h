@@ -43,12 +43,60 @@ struct GetByIdModeMetadataDefault {
 };
 static_assert(sizeof(GetByIdModeMetadataDefault) == 12);
 
-struct GetByIdModeMetadataUnset {
+struct UnsetEntry {
     StructureID structureID;
-    unsigned padding1;
-    unsigned padding2;
 };
-static_assert(sizeof(GetByIdModeMetadataUnset) == 12);
+
+struct GetByIdModeMetadataUnset {
+    size_t numCases() const
+    {
+        if (!cases)
+            return 0;
+        size_t i = 0;
+        for (auto* ptr = cases; ptr->structureID; ++ptr)
+            ++i;
+        return i;
+    }
+
+    template <typename F>
+    void forEachCase(F f)
+    {
+        if (!cases)
+            return;
+        for (auto* ptr = cases; ptr->structureID; ++ptr)
+            f(*ptr);
+    }
+
+    void addOrReplaceCase(UnsetEntry entry)
+    {
+        size_t numCases = this->numCases();
+
+        if (numCases >= Options::maxAccessVariantListSize()) {
+            for (size_t i = numCases - 1; i > 0; i--)
+                cases[i] = cases[i - 1];
+            cases[0] = entry;
+            return;
+        }
+
+        ASSERT(numCases < Options::maxAccessVariantListSize());
+        UnsetEntry* array = static_cast<UnsetEntry*>(fastMalloc(sizeof(UnsetEntry) * (numCases + 2)));
+        if (cases) {
+            memcpy(array + 1, cases, sizeof(UnsetEntry) * (numCases + 1));
+            ASSERT(array[numCases + 1].structureID == 0);
+            fastFree(cases);
+        } else
+            array[numCases + 1].structureID = 0;
+
+        cases = array;
+        *cases = entry;
+    }
+
+    UnsetEntry* cases;
+    // StructureID structureID;
+    // unsigned padding1;
+    // unsigned padding2;
+};
+static_assert(sizeof(GetByIdModeMetadataUnset) == 8);
 
 struct GetByIdModeMetadataArrayLength {
     ArrayProfile arrayProfile;
@@ -203,7 +251,9 @@ inline void GetByIdModeMetadata::setUnsetMode(Structure* structure)
 {
     freeOldIfNeeded();
     mode = GetByIdMode::Unset;
-    unsetMode.structureID = structure->id();
+    UnsetEntry entry;
+    entry.structureID = structure->id();
+    unsetMode.addOrReplaceCase(entry);
 }
 
 inline void GetByIdModeMetadata::setArrayLengthMode()

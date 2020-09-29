@@ -726,7 +726,14 @@ static void setupUnsetGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm
 
     {
         ConcurrentJSLocker locker(codeBlock->m_lock);
-        metadata.m_modeMetadata.setUnsetMode(structure);
+        // It means we are starting a Unset mode
+        if (metadata.m_modeMetadata.mode != GetByIdMode::Unset)
+            metadata.m_modeMetadata.setUnsetMode(structure);
+
+        // We are seeing a polymorphic unset access
+        UnsetEntry entry;
+        entry.structureID = structure->id();
+        metadata.m_modeMetadata.unsetMode.addOrReplaceCase(entry);
     }
     vm.heap.writeBarrier(codeBlock);
 }
@@ -820,7 +827,12 @@ static JSValue performLLIntGetByID(const Instruction* pc, CodeBlock* codeBlock, 
                 oldStructureID = metadata.defaultMode.structureID;
                 break;
             case GetByIdMode::Unset:
-                oldStructureID = metadata.unsetMode.structureID;
+                // oldStructureID = metadata.m_modeMetadata.unsetMode.structureID
+                if (metadata.m_modeMetadata.unsetMode.numCases() == 1) { // OOPS: maybe consider all cases?
+                    metadata.m_modeMetadata.unsetMode.forEachCase([&] (const UnsetEntry& entry) {
+                        oldStructureID = entry.structureID;
+                    });
+                }
                 break;
             case GetByIdMode::ProtoLoad:
                 if (metadata.m_modeMetadata.protoLoadMode.numCases() == 1) { // OOPS: maybe consider all cases?

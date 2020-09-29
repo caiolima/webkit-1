@@ -1534,10 +1534,16 @@ macro performGetByIDHelper(opcodeStruct, modeMetadataName, valueProfileName, slo
 
 .opGetByIdUnset:
     loadi JSCell::m_structureID[t3], t1
-    loadi %opcodeStruct%::Metadata::%modeMetadataName%.unsetMode.structureID[t2], t0
-    bineq t0, t1, slowLabel
+    loadi %opcodeStruct%::Metadata::%modeMetadataName%.unsetMode.cases[t2], t0
+.unsetCasesLoop:
+    loadi UnsetEntry::structureID[t0], t5
+    bineq t5, t1, .unsetMaybeNext
     valueProfile(opcodeStruct, valueProfileName, t2, ValueUndefined)
     return(ValueUndefined)
+.unsetMaybeNext:
+    btiz t5, slowLabel
+    addq sizeof UnsetEntry, t0
+    jmp .unsetCasesLoop
 
 end
 
