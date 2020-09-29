@@ -735,8 +735,8 @@ static void setupGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm, Cod
 {
     UNUSED_PARAM(ident);
     Structure* structure = baseCell->structure(vm);
-    if (metadata.m_modeMetadata.mode == GetByIdMode::ProtoLoad && metadata.m_modeMetadata.protoLoadMode.numCases() >= Options::maxAccessVariantListSize())
-        return;
+    // if (metadata.m_modeMetadata.mode == GetByIdMode::ProtoLoad && metadata.m_modeMetadata.protoLoadMode.numCases() >= Options::maxAccessVariantListSize())
+    //     return;
 
     if (structure->typeInfo().prohibitsPropertyCaching())
         return;
@@ -794,7 +794,7 @@ static void setupGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm, Cod
         entry.cachedOffset = slot.cachedOffset();
         entry.cachedSlot = slot.slotBase();
 
-        metadata.m_modeMetadata.protoLoadMode.addCase(entry);
+        metadata.m_modeMetadata.protoLoadMode.addOrReplaceCase(entry);
     }
 
     vm.heap.writeBarrier(codeBlock);
