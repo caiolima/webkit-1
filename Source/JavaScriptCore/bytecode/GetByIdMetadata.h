@@ -81,9 +81,18 @@ struct GetByIdModeMetadataProtoLoad {
             f(*ptr);
     }
 
-    void addCase(ProtoLoadEntry entry)
+    void addOrReplaceCase(ProtoLoadEntry entry)
     {
         size_t numCases = this->numCases();
+
+        if (numCases >= Options::maxAccessVariantListSize()) {
+            for (size_t i = numCases - 1; i > 0; i--)
+                cases[i] = cases[i - 1];
+            cases[0] = entry;
+            return;
+        }
+
+        ASSERT(numCases < Options::maxAccessVariantListSize());
         ProtoLoadEntry* array = static_cast<ProtoLoadEntry*>(fastMalloc(sizeof(ProtoLoadEntry) * (numCases + 2)));
         if (cases) {
             memcpy(array + 1, cases, sizeof(ProtoLoadEntry) * (numCases + 1));
