@@ -92,9 +92,6 @@ struct GetByIdModeMetadataUnset {
     }
 
     UnsetEntry* cases;
-    // StructureID structureID;
-    // unsigned padding1;
-    // unsigned padding2;
 };
 static_assert(sizeof(GetByIdModeMetadataUnset) == 8);
 
@@ -180,7 +177,7 @@ union GetByIdModeMetadata {
     }
 
     void clearToDefaultModeWithoutCache();
-    void setUnsetMode(Structure*);
+    void setUnsetMode();
     void setArrayLengthMode();
     void setProtoLoadMode();
     void freeOldIfNeeded();
@@ -211,7 +208,7 @@ struct GetByIdModeMetadata {
     }
 
     void clearToDefaultModeWithoutCache();
-    void setUnsetMode(Structure*);
+    void setUnsetMode();
     void setArrayLengthMode();
     void setProtoLoadMode();
     void freeOldIfNeeded();
@@ -234,6 +231,9 @@ inline void GetByIdModeMetadata::freeOldIfNeeded()
         protoLoadMode.watchpoints().clear();
         if (protoLoadMode.cases)
             fastFree(protoLoadMode.cases);
+    } else if (mode == GetByIdMode::Unset) {
+        if (unsetMode.cases)
+            fastFree(unsetMode.cases);
     }
 }
 
@@ -247,13 +247,11 @@ inline void GetByIdModeMetadata::clearToDefaultModeWithoutCache()
     defaultMode.cachedOffset = 0;
 }
 
-inline void GetByIdModeMetadata::setUnsetMode(Structure* structure)
+inline void GetByIdModeMetadata::setUnsetMode()
 {
     freeOldIfNeeded();
     mode = GetByIdMode::Unset;
-    UnsetEntry entry;
-    entry.structureID = structure->id();
-    unsetMode.addOrReplaceCase(entry);
+    unsetMode.cases = nullptr;
 }
 
 inline void GetByIdModeMetadata::setArrayLengthMode()

@@ -728,7 +728,7 @@ static void setupUnsetGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm
         ConcurrentJSLocker locker(codeBlock->m_lock);
         // It means we are starting a Unset mode
         if (metadata.m_modeMetadata.mode != GetByIdMode::Unset)
-            metadata.m_modeMetadata.setUnsetMode(structure);
+            metadata.m_modeMetadata.setUnsetMode();
 
         // We are seeing a polymorphic unset access
         UnsetEntry entry;
@@ -880,6 +880,10 @@ static JSValue performLLIntGetByID(const Instruction* pc, CodeBlock* codeBlock, 
             metadata.arrayLengthMode.arrayProfile.observeStructure(baseValue.asCell()->structure(vm));
         }
         vm.heap.writeBarrier(codeBlock);
+    } else if (!LLINT_ALWAYS_ACCESS_SLOW && baseValue.isCell() && slot.isCacheable() && slot.isUnset()) {
+        JSCell* baseCell = baseValue.asCell();
+        Structure* structure = baseCell->structure(vm);
+        setupUnsetGetByIdPrototypeCache(globalObject, vm, codeBlock, pc, metadata, baseCell, structure, slot, ident);
     }
 
     return result;
