@@ -697,6 +697,18 @@ static void setupUnsetGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm
 {
     ASSERT(slot.isUnset());
 
+    if (metadata.m_modeMetadata.mode == GetByIdMode::Unset && metadata.m_modeMetadata.unsetMode.repatchCount() >= Options::maxLLIntRepatchCount()) {
+        // WTF::dataLog("Gave up unset Cache\n");
+        metadata.m_modeMetadata.clearToDefaultModeWithoutCache();
+        metadata.m_modeMetadata.hitCountForLLIntCaching = 0; // disable PrototypeLoad
+        return;
+    }
+
+    if (metadata.m_modeMetadata.mode != GetByIdMode::Unset && !metadata.m_modeMetadata.hitCountForLLIntCaching) {
+        // WTF::dataLog("PIC Unset is disabled\n");
+        return;
+    }
+
     if (structure->isDictionary()) {
         if (structure->hasBeenFlattenedBefore())
             return;
@@ -734,6 +746,7 @@ static void setupUnsetGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm
         UnsetEntry entry;
         entry.structureID = structure->id();
         metadata.m_modeMetadata.unsetMode.addOrReplaceCase(entry);
+        // WTF::dataLog("Added unset cache case\n");
     }
     vm.heap.writeBarrier(codeBlock);
 }
