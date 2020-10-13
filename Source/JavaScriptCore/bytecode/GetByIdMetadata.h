@@ -45,6 +45,7 @@ static_assert(sizeof(GetByIdModeMetadataDefault) == 12);
 
 struct UnsetEntry {
     StructureID structureID;
+    unsigned repatchCount;
 };
 
 struct GetByIdModeMetadataUnset {
@@ -72,8 +73,10 @@ struct GetByIdModeMetadataUnset {
         size_t numCases = this->numCases();
 
         if (numCases >= Options::maxAccessVariantListSize()) {
+            unsigned repatchCount = cases[0].repatchCount;
             for (size_t i = numCases - 1; i > 0; i--)
                 cases[i] = cases[i - 1];
+            entry.repatchCount = repatchCount + 1;
             cases[0] = entry;
             return;
         }
@@ -87,8 +90,16 @@ struct GetByIdModeMetadataUnset {
         } else
             array[numCases + 1].structureID = 0;
 
+        entry.repatchCount = numCases + 1;
         cases = array;
         *cases = entry;
+    }
+
+    unsigned repatchCount()
+    {
+        if (!cases)
+            return 0;
+        return cases[0].repatchCount;
     }
 
     UnsetEntry* cases;
@@ -149,7 +160,7 @@ struct GetByIdModeMetadataProtoLoad {
         } else
             array[numCases + 1].structureID = 0;
 
-        entry.repatchCount = numCases;
+        entry.repatchCount = numCases + 1;
         cases = array;
         *cases = entry;
     }
