@@ -225,6 +225,7 @@ JS_EXPORT_PRIVATE bool canUseJITCage();
     v(Bool, enableJITDebugAssertions, ASSERT_ENABLED, Normal, nullptr) \
     v(Bool, useAccessInlining, true, Normal, nullptr) \
     v(Unsigned, maxAccessVariantListSize, 8, Normal, nullptr) \
+    v(Unsigned, maxLLIntRepatchCount, 16, Normal, nullptr) \
     v(Bool, usePolyvariantDevirtualization, true, Normal, nullptr) \
     v(Bool, usePolymorphicAccessInlining, true, Normal, nullptr) \
     v(Unsigned, maxPolymorphicAccessInliningListSize, 8, Normal, nullptr) \
