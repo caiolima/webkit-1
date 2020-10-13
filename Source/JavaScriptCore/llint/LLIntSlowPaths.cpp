@@ -743,12 +743,16 @@ static void setupGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm, Cod
     UNUSED_PARAM(ident);
     Structure* structure = baseCell->structure(vm);
     if (metadata.m_modeMetadata.mode == GetByIdMode::ProtoLoad && metadata.m_modeMetadata.protoLoadMode.repatchCount() >= Options::maxLLIntRepatchCount()) {
+        // WTF::dataLog("Giving up PIC\n");
+        metadata.m_modeMetadata.clearToDefaultModeWithoutCache();
         metadata.m_modeMetadata.hitCountForLLIntCaching = 0; // disable PrototypeLoad
         return;
     }
 
-    if (metadata.m_modeMetadata.mode != GetByIdMode::ProtoLoad && !metadata.m_modeMetadata.hitCountForLLIntCaching)
+    if (metadata.m_modeMetadata.mode != GetByIdMode::ProtoLoad && !metadata.m_modeMetadata.hitCountForLLIntCaching) {
+        // WTF::dataLog("PIC is disabled\n");
         return;
+    }
 
     if (structure->typeInfo().prohibitsPropertyCaching())
         return;
@@ -807,6 +811,7 @@ static void setupGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm, Cod
         entry.cachedSlot = slot.slotBase();
 
         metadata.m_modeMetadata.protoLoadMode.addOrReplaceCase(entry);
+        // WTF::dataLog("new PIC case added\n");
     }
 
     vm.heap.writeBarrier(codeBlock);
