@@ -742,8 +742,13 @@ static void setupGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm, Cod
 {
     UNUSED_PARAM(ident);
     Structure* structure = baseCell->structure(vm);
-    // if (metadata.m_modeMetadata.mode == GetByIdMode::ProtoLoad && metadata.m_modeMetadata.protoLoadMode.numCases() >= Options::maxAccessVariantListSize())
-    //     return;
+    if (metadata.m_modeMetadata.mode == GetByIdMode::ProtoLoad && metadata.m_modeMetadata.protoLoadMode.repatchCount() >= Options::maxLLIntRepatchCount()) {
+        metadata.m_modeMetadata.hitCountForLLIntCaching = 0; // disable PrototypeLoad
+        return;
+    }
+
+    if (metadata.m_modeMetadata.mode != GetByIdMode::ProtoLoad && !metadata.m_modeMetadata.hitCountForLLIntCaching)
+        return;
 
     if (structure->typeInfo().prohibitsPropertyCaching())
         return;
@@ -871,8 +876,9 @@ static JSValue performLLIntGetByID(const Instruction* pc, CodeBlock* codeBlock, 
                 metadata.defaultMode.cachedOffset = slot.cachedOffset();
                 vm.heap.writeBarrier(codeBlock);
             }
-        } else if (slot.isValue())
+        } else if (slot.isValue()) {
             setupGetByIdPrototypeCache(globalObject, vm, codeBlock, pc, metadata, baseCell, slot, ident);
+        }
     } else if (!LLINT_ALWAYS_ACCESS_SLOW && isJSArray(baseValue) && ident == vm.propertyNames->length) {
         {
             ConcurrentJSLocker locker(codeBlock->m_lock);
