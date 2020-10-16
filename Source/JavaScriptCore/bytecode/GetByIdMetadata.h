@@ -187,38 +187,38 @@ static_assert(sizeof(GetByIdModeMetadataProtoLoad) == 16);
 
 // In 64bit Little endian architecture, this union shares ProtoLoad's JSObject* cachedSlot with "hitCountForLLIntCaching" and "mode".
 // This is possible because these values must be zero if we use ProtoLoad mode.
-#if CPU(LITTLE_ENDIAN) && CPU(ADDRESS64)
-union GetByIdModeMetadata {
-    GetByIdModeMetadata()
-    {
-        defaultMode.structureID = 0;
-        defaultMode.cachedOffset = 0;
-        defaultMode.padding1 = 0;
-        mode = GetByIdMode::Default;
-        hitCountForLLIntCaching = Options::prototypeHitCountForLLIntCaching();
-    }
-
-    void clearToDefaultModeWithoutCache();
-    void setUnsetMode();
-    void setArrayLengthMode();
-    void setProtoLoadMode();
-    void freeOldIfNeeded();
-
-    struct {
-        uint32_t padding1;
-        uint32_t padding2;
-        uint32_t padding3;
-        uint16_t padding4;
-        GetByIdMode mode;
-        uint8_t hitCountForLLIntCaching; // This must be zero when we use ProtoLoad mode.
-    };
-    GetByIdModeMetadataDefault defaultMode;
-    GetByIdModeMetadataUnset unsetMode;
-    GetByIdModeMetadataArrayLength arrayLengthMode;
-    GetByIdModeMetadataProtoLoad protoLoadMode;
-};
-static_assert(sizeof(GetByIdModeMetadata) == 16);
-#else
+// #if CPU(LITTLE_ENDIAN) && CPU(ADDRESS64)
+// union GetByIdModeMetadata {
+//     GetByIdModeMetadata()
+//     {
+//         defaultMode.structureID = 0;
+//         defaultMode.cachedOffset = 0;
+//         defaultMode.padding1 = 0;
+//         mode = GetByIdMode::Default;
+//         hitCountForLLIntCaching = Options::prototypeHitCountForLLIntCaching();
+//     }
+// 
+//     void clearToDefaultModeWithoutCache();
+//     void setUnsetMode();
+//     void setArrayLengthMode();
+//     void setProtoLoadMode();
+//     void freeOldIfNeeded();
+// 
+//     struct {
+//         uint32_t padding1;
+//         uint32_t padding2;
+//         uint32_t padding3;
+//         uint16_t padding4;
+//         GetByIdMode mode;
+//         uint8_t hitCountForLLIntCaching; // This must be zero when we use ProtoLoad mode.
+//     };
+//     GetByIdModeMetadataDefault defaultMode;
+//     GetByIdModeMetadataUnset unsetMode;
+//     GetByIdModeMetadataArrayLength arrayLengthMode;
+//     GetByIdModeMetadataProtoLoad protoLoadMode;
+// };
+// static_assert(sizeof(GetByIdModeMetadata) == 16);
+// #else
 struct GetByIdModeMetadata {
     GetByIdModeMetadata()
     {
@@ -244,7 +244,7 @@ struct GetByIdModeMetadata {
     GetByIdMode mode;
     uint8_t hitCountForLLIntCaching;
 };
-#endif
+// #endif
 
 inline void GetByIdModeMetadata::freeOldIfNeeded()
 {
