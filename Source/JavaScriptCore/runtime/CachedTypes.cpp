@@ -1794,7 +1794,7 @@ public:
     void encode(Encoder& encoder, const UnlinkedFunctionExecutable::RareData& rareData)
     {
         m_classSource.encode(encoder, rareData.m_classSource);
-        m_parentScopeVariableEnvironment.encode(encoder, rareData.m_parentScopeVariableEnvironment);
+        m_parentScopeTDZVariables.encode(encoder, rareData.m_parentScopeTDZVariables);
         m_parentPrivateNameEnvironment.encode(encoder, rareData.m_parentPrivateNameEnvironment);
     }
 
