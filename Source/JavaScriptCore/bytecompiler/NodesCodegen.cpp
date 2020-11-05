@@ -4929,7 +4929,7 @@ RegisterID* ClassExprNode::emitBytecode(BytecodeGenerator& generator, RegisterID
         generator.pushLexicalScope(this, BytecodeGenerator::TDZCheckOptimization::Optimize, BytecodeGenerator::NestedScopeType::IsNested);
 
     bool hasPrivateNames = !!m_lexicalVariables.privateNamesSize();
-    bool shouldEmitPrivateBrand = m_lexicalVariables.hasPrivateAccess();
+    bool shouldEmitPrivateBrand = m_lexicalVariables.hasPrivateMethodOrAccessor();
     if (hasPrivateNames)
         generator.pushPrivateAccessNames(m_lexicalVariables.privateNameEnvironment());
     if (shouldEmitPrivateBrand)

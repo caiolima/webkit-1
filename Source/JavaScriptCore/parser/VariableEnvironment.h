@@ -234,7 +234,7 @@ public:
         return &m_rareData->m_privateNames;
     }
 
-    ALWAYS_INLINE bool hasPrivateAccess() const
+    ALWAYS_INLINE bool hasPrivateMethodOrAccessor() const
     {
         if (!m_rareData)
             return false;
@@ -277,8 +277,8 @@ public:
             m_rareData = makeUnique<VariableEnvironment::RareData>();
 
         for (auto entry : *privateNameEnvironment) {
-            if (!(entry.value.isUsed() && entry.value.isDeclared()))
-                m_rareData->m_privateNames.add(entry.key, entry.value);
+            ASSERT(entry.value.isDeclared());
+            m_rareData->m_privateNames.add(entry.key, entry.value);
         }
     }
 
