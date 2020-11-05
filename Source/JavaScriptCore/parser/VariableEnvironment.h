@@ -268,6 +268,20 @@ public:
         }
     }
 
+    ALWAYS_INLINE void addPrivateNamesFrom(const PrivateNameEnvironment* privateNameEnvironment)
+    {
+        if (!privateNameEnvironment)
+            return;
+
+        if (!m_rareData)
+            m_rareData = makeUnique<VariableEnvironment::RareData>();
+
+        for (auto entry : *privateNameEnvironment) {
+            if (!(entry.value.isUsed() && entry.value.isDeclared()))
+                m_rareData->m_privateNames.add(entry.key, entry.value);
+        }
+    }
+
     ALWAYS_INLINE void copyUndeclaredPrivateNamesTo(VariableEnvironment& outer) const {
         // Used by the Parser to transfer recorded uses of PrivateNames from an
         // inner PrivateNameEnvironment into an outer one, in case a PNE is used

@@ -2113,9 +2113,9 @@ std::unique_ptr<ParsedNode> Parser<LexerType>::parse(ParserError& error, const I
     ASSERT(m_source->startColumn() > OrdinalNumber::beforeFirst());
     unsigned startColumn = m_source->startColumn().zeroBasedInt();
 
-    if (isEvalNode<ParsedNode>() && parentScopePrivateNames && parentScopePrivateNames->privateNamesSize()) {
+    if (isEvalNode<ParsedNode>() && parentScopePrivateNames && parentScopePrivateNames->size()) {
         currentScope()->setIsPrivateNameScope();
-        parentScopePrivateNames->copyPrivateNamesTo(currentScope()->lexicalVariables());
+        currentScope()->lexicalVariables().addPrivateNamesFrom(parentScopePrivateNames);
     }
 
     auto parseResult = parseInner(calleeName, parsingContext, functionConstructorParametersEndPosition, classFieldLocations);
