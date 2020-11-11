@@ -123,7 +123,7 @@ private:
     const Structure* m_structure;
 };
 
-class Structure final : public JSCell {
+class Structure : public JSCell {
     static constexpr uint16_t shortInvalidOffset = std::numeric_limits<uint16_t>::max() - 1;
     static constexpr uint16_t useRareDataFlag = std::numeric_limits<uint16_t>::max();
 public:
@@ -146,13 +146,7 @@ public:
 
     JS_EXPORT_PRIVATE static bool isValidPrototype(JSValue);
 
-private:
-    void finishCreation(VM& vm)
-    {
-        Base::finishCreation(vm);
-        ASSERT(m_prototype.get().isEmpty() || isValidPrototype(m_prototype.get()));
-    }
-
+protected:
     void finishCreation(VM& vm, const Structure* previous)
     {
         this->finishCreation(vm);
@@ -163,6 +157,13 @@ private:
                 rareData()->setSharedPolyProtoWatchpoint(previousRareData->copySharedPolyProtoWatchpoint());
             }
         }
+    }
+
+private:
+    void finishCreation(VM& vm)
+    {
+        Base::finishCreation(vm);
+        ASSERT(m_prototype.get().isEmpty() || isValidPrototype(m_prototype.get()));
     }
 
     void finishCreation(VM& vm, CreatingEarlyCellTag)
@@ -206,6 +207,7 @@ public:
     static Structure* preventExtensionsTransition(VM&, Structure*);
     static Structure* nonPropertyTransition(VM&, Structure*, TransitionKind);
     JS_EXPORT_PRIVATE static Structure* nonPropertyTransitionSlow(VM&, Structure*, TransitionKind);
+    static Structure* setBrandTransition(VM&, Structure*, Symbol* brand, DeferredStructureTransitionWatchpointFire* = nullptr);
 
     JS_EXPORT_PRIVATE bool isSealed(VM&);
     JS_EXPORT_PRIVATE bool isFrozen(VM&);
@@ -715,16 +717,19 @@ public:
     DEFINE_BITFIELD(bool, hasBeenDictionary, HasBeenDictionary, 1, 27);
     DEFINE_BITFIELD(bool, protectPropertyTableWhileTransitioning, ProtectPropertyTableWhileTransitioning, 1, 28);
     DEFINE_BITFIELD(bool, hasUnderscoreProtoPropertyExcludingOriginalProto, HasUnderscoreProtoPropertyExcludingOriginalProto, 1, 29);
+    DEFINE_BITFIELD(bool, isBrandedStructure, IsBrandedStructure, 1, 30);
 
     static_assert(s_bitWidthOfTransitionPropertyAttributes <= sizeof(TransitionPropertyAttributes) * 8);
     static_assert(s_bitWidthOfTransitionKind <= sizeof(TransitionKind) * 8);
+
+protected:
+    Structure(VM&, Structure*, DeferredStructureTransitionWatchpointFire*);
 
 private:
     friend class LLIntOffsetsExtractor;
 
     JS_EXPORT_PRIVATE Structure(VM&, JSGlobalObject*, JSValue prototype, const TypeInfo&, const ClassInfo*, IndexingType, unsigned inlineCapacity);
     Structure(VM&);
-    Structure(VM&, Structure*, DeferredStructureTransitionWatchpointFire*);
 
     static Structure* create(VM&, Structure*, DeferredStructureTransitionWatchpointFire* = nullptr);
     
@@ -872,6 +877,43 @@ private:
 
     friend class VMInspector;
     friend class JSDollarVMHelper;
+};
+
+class BrandedStructure final : public Structure {
+    typedef Structure Base;
+
+public:
+
+    template<typename CellType, SubspaceAccess>
+    static IsoSubspace* subspaceFor(VM& vm)
+    {
+        return &vm.brandedStructureSpace;
+    }
+
+    Symbol* brand()
+    {
+        return m_brand.get();
+    }
+
+    BrandedStructure* parentBrand()
+    {
+        return m_parentBrand.get();
+    }
+
+    static void visitChildren(JSCell*, SlotVisitor&);
+
+    bool checkBrand(Symbol* brand);
+
+private: 
+    BrandedStructure(VM&, Structure*, Symbol* brand, DeferredStructureTransitionWatchpointFire*);
+    BrandedStructure(VM&, BrandedStructure*, DeferredStructureTransitionWatchpointFire*);
+
+    static Structure* create(VM&, Structure*, Symbol* brand, DeferredStructureTransitionWatchpointFire* = nullptr);
+
+    WriteBarrier<Symbol> m_brand;
+    WriteBarrier<BrandedStructure> m_parentBrand;
+
+    friend class Structure;
 };
 
 } // namespace JSC

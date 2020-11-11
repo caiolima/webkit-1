@@ -2777,7 +2777,7 @@ void BytecodeGenerator::emitInstallPrivateBrand(RegisterID* target)
     Variable privateBrandVar = variable(propertyNames().builtinNames().privateBrandPrivateName());
     RefPtr<RegisterID> privateBrandVarScope = emitResolveScope(nullptr, privateBrandVar);
     RegisterID* privateBrandSymbol = emitGetPrivateBrand(newTemporary(), privateBrandVarScope.get());
-    emitDefinePrivateField(target, privateBrandSymbol, privateBrandSymbol);
+    OpSetPrivateBrand::emit(this, target, privateBrandSymbol);
 }
 
 RegisterID* BytecodeGenerator::emitGetPrivateBrand(RegisterID* dst, RegisterID* scope)
@@ -2794,8 +2794,7 @@ RegisterID* BytecodeGenerator::emitPrivateFieldPut(RegisterID* base, RegisterID*
 
 void BytecodeGenerator::emitCheckPrivateBrand(RegisterID* base, RegisterID* brandSymbol)
 {
-    // This is going to throw TypeError if brand is not present
-    emitGetPrivateName(newTemporary(), base, brandSymbol);
+    OpCheckPrivateBrand::emit(this, base, brandSymbol);
 }
 
 void BytecodeGenerator::emitSuperSamplerBegin()

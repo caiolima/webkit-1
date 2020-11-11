@@ -54,6 +54,7 @@ enum class TransitionKind : uint8_t {
     SwitchToSlowPutArrayStorage,
     AddIndexedAccessors,
     PreventExtensions,
+    SetBrand,
     Seal,
     Freeze
 };

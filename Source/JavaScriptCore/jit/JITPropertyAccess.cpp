@@ -142,6 +142,30 @@ void JIT::emitSlow_op_get_private_name(const Instruction* currentInstruction, Ve
     gen.reportSlowPathCall(coldPathBegin, call);
 }
 
+void JIT::emit_op_set_private_brand(const Instruction*)
+{
+    // OOPS: Implement this
+    CRASH();
+}
+
+void JIT::emitSlow_op_set_private_brand(const Instruction*, Vector<SlowCaseEntry>::iterator&)
+{
+    // OOPS: Implement this
+    CRASH();
+}
+
+void JIT::emit_op_check_private_brand(const Instruction*)
+{
+    // OOPS: Implement this
+    CRASH();
+}
+
+void JIT::emitSlow_op_check_private_brand(const Instruction*, Vector<SlowCaseEntry>::iterator&)
+{
+    // OOPS: Implement this
+    CRASH();
+}
+
 void JIT::emit_op_put_by_val_direct(const Instruction* currentInstruction)
 {
     emit_op_put_by_val<OpPutByValDirect>(currentInstruction);

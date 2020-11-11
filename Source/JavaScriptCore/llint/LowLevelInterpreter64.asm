@@ -1815,6 +1815,16 @@ llintOpWithMetadata(op_put_private_name, OpPutPrivateName, macro (size, get, dis
     dispatch()
 end)
 
+llintOpWithMetadata(op_set_private_brand, OpSetPrivateBrand, macro (size, get, dispatch, metadata, return)
+    callSlowPath(_llint_slow_path_set_private_brand)
+    dispatch()
+end)
+
+llintOpWithMetadata(op_check_private_brand, OpCheckPrivateBrand, macro (size, get, dispatch, metadata, return)
+    callSlowPath(_llint_slow_path_check_private_brand)
+    dispatch()
+end)
+
 macro putByValOp(opcodeName, opcodeStruct, osrExitPoint)
     llintOpWithMetadata(op_%opcodeName%, opcodeStruct, macro (size, get, dispatch, metadata, return)
         macro contiguousPutByVal(storeCallback)

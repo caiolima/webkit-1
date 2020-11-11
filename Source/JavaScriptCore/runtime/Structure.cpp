@@ -424,7 +424,7 @@ PropertyTable* Structure::materializePropertyTable(VM& vm, bool setPropertyTable
 
     for (size_t i = structures.size(); i--;) {
         structure = structures[i];
-        if (!structure->m_transitionPropertyName)
+        if (!structure->m_transitionPropertyName || structure->transitionKind() == TransitionKind::SetBrand)
             continue;
         switch (structure->transitionKind()) {
         case TransitionKind::PropertyAddition: {
@@ -1494,6 +1494,104 @@ auto Structure::findPropertyHashEntry(PropertyName propertyName) const -> Option
         }
     }
     return WTF::nullopt;
+}
+
+BrandedStructure::BrandedStructure(VM& vm, Structure* previous, Symbol* brandSymbol, DeferredStructureTransitionWatchpointFire* deferred)
+    : Structure(vm, previous, deferred)
+    , m_brand(vm, this, brandSymbol)
+{
+    if (previous->isBrandedStructure())
+        m_parentBrand.set(vm, this, jsCast<BrandedStructure*>(previous));
+    this->setIsBrandedStructure(true);
+}
+
+BrandedStructure::BrandedStructure(VM& vm, BrandedStructure* previous, DeferredStructureTransitionWatchpointFire* deferred)
+    : Structure(vm, previous, deferred)
+    , m_brand(vm, this, previous->brand())
+    , m_parentBrand(vm, this, previous->parentBrand())
+{
+    this->setIsBrandedStructure(true);
+}
+
+void BrandedStructure::visitChildren(JSCell* cell, SlotVisitor& visitor)
+{
+    BrandedStructure* thisObject = jsCast<BrandedStructure*>(cell);
+    ASSERT_GC_OBJECT_INHERITS(thisObject, info());
+
+    Base::visitChildren(thisObject, visitor);
+    
+    visitor.append(thisObject->m_brand);
+    visitor.append(thisObject->m_parentBrand);
+}
+
+Structure* BrandedStructure::create(VM& vm, Structure* previous, Symbol* brand, DeferredStructureTransitionWatchpointFire* deferred)
+{
+    ASSERT(vm.structureStructure);
+    BrandedStructure* newStructure = new (NotNull, allocateCell<BrandedStructure>(vm.heap)) BrandedStructure(vm, previous, brand, deferred);
+    newStructure->finishCreation(vm, previous);
+    return newStructure;
+}
+
+bool BrandedStructure::checkBrand(Symbol* brand)
+{
+    for (BrandedStructure* currentStructure = this; currentStructure; currentStructure = currentStructure->m_parentBrand.get()) {
+        if (brand == currentStructure->m_brand.get())
+            return true;
+    }
+    return false;
+}
+
+Structure* Structure::setBrandTransition(VM& vm, Structure* structure, Symbol* brand, DeferredStructureTransitionWatchpointFire* deferred)
+{
+    if (!structure->isDictionary()) {
+        if (Structure* existingTransition = structure->m_transitionTable.get(&brand->uid(), 0, TransitionKind::SetBrand)) {
+            ASSERT(existingTransition->transitionKind() == TransitionKind::SetBrand);
+            return existingTransition;
+        }
+    }
+
+    Structure* transition = BrandedStructure::create(vm, structure, brand, deferred);
+
+    transition->m_cachedPrototypeChain.setMayBeNull(vm, transition, structure->m_cachedPrototypeChain.get());
+    
+    // // While we are adding the property, rematerializing the property table is super weird: we already
+    // // have a m_transitionPropertyName and transitionPropertyAttributes but the m_transitionOffset is still wrong. If the
+    // // materialization algorithm runs, it'll build a property table that already has the property but
+    // // at a bogus offset. Rather than try to teach the materialization code how to create a table under
+    // // those conditions, we just tell the GC not to blow the table away during this period of time.
+    // // Holding the lock ensures that we either do this before the GC starts scanning the structure, in
+    // // which case the GC will not blow the table away, or we do it after the GC already ran in which
+    // // case all is well.  If it wasn't for the lock, the GC would have TOCTOU: if could read
+    // // protectPropertyTableWhileTransitioning before we set it to true, and then blow the table away after.
+    // {
+    //     ConcurrentJSLocker locker(transition->lock());
+    //     transition->setProtectPropertyTableWhileTransitioning(true);
+    // }
+
+    transition->m_blob.setIndexingModeIncludingHistory(structure->indexingModeIncludingHistory());
+    transition->m_transitionPropertyName = &brand->uid();
+    transition->setTransitionPropertyAttributes(0);
+    transition->setTransitionKind(TransitionKind::SetBrand);
+    transition->setPropertyTable(vm, structure->takePropertyTableOrCloneIfPinned(vm));
+    transition->setMaxOffset(vm, structure->maxOffset());
+
+    // // Now that everything is fine with the new structure's bookkeeping, the GC is free to blow the
+    // // table away if it wants. We can now rebuild it fine.
+    // WTF::storeStoreFence();
+    // transition->setProtectPropertyTableWhileTransitioning(false);
+
+    // checkOffset(transition->transitionOffset(), transition->inlineCapacity());
+    
+    if (structure->isDictionary()) {
+        PropertyTable* table = transition->ensurePropertyTable(vm);
+        transition->pin(holdLock(transition->m_lock), vm, table);
+    } else {
+        auto locker = holdLock(structure->m_lock);
+        structure->m_transitionTable.add(vm, transition);
+    }
+
+    transition->checkOffsetConsistency();
+    return transition;
 }
 
 } // namespace JSC

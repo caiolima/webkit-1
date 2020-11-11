@@ -669,4 +669,45 @@ ALWAYS_INLINE void JSObject::getNonReifiedStaticPropertyNames(VM& vm, PropertyNa
     }
 }
 
+inline bool JSObject::checkPrivateBrand(JSGlobalObject* globalObject, JSValue brand)
+{
+    ASSERT(brand.isSymbol());
+    VM& vm = getVM(globalObject);
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
+    Structure* structure = this->structure(vm);
+    if (!structure->isBrandedStructure() || !jsCast<BrandedStructure*>(structure)->checkBrand(asSymbol(brand))) {
+        throwException(globalObject, scope, createInvalidPrivateNameError(globalObject));
+        RELEASE_AND_RETURN(scope, false);
+    }
+    EXCEPTION_ASSERT(!scope.exception());
+
+    return true;
+}
+
+inline void JSObject::setPrivateBrand(JSGlobalObject* globalObject, JSValue brand)
+{
+    ASSERT(brand.isSymbol());
+    VM& vm = getVM(globalObject);
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
+    Structure* structure = this->structure(vm);
+    if (structure->isBrandedStructure() && jsCast<BrandedStructure*>(structure)->checkBrand(asSymbol(brand))) {
+        // We are trying to install a brand already installed
+        throwException(globalObject, scope, createInvalidPrivateNameError(globalObject));
+        RELEASE_AND_RETURN(scope, void());
+    }
+    EXCEPTION_ASSERT(!scope.exception());
+
+    scope.release();
+
+    // Now we know proeprty is not set, we need to do so
+    DeferredStructureTransitionWatchpointFire deferredWatchpointFire(vm, structure);
+
+    Structure* newStructure = Structure::setBrandTransition(vm, structure, asSymbol(brand), &deferredWatchpointFire);
+    ASSERT(newStructure->isBrandedStructure());
+    ASSERT(newStructure->outOfLineCapacity() || !this->structure(vm)->outOfLineCapacity());
+    this->setStructure(vm, newStructure);
+}
+
 } // namespace JSC
