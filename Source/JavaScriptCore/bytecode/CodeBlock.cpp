@@ -1467,12 +1467,12 @@ void CodeBlock::finalizeLLIntInlineCaches()
             switch (opcode) {
             case op_get_by_id: {
                 dataLogLnIf(Options::verboseOSR(), "Clearing LLInt property access.");
-                LLIntPrototypeLoadAdaptiveStructureWatchpoint::clearLLIntGetByIdCache(instruction->as<OpGetById>().metadata(this).m_modeMetadata);
+                instruction->as<OpGetById>().metadata(this).m_modeMetadata.clearToDefaultModeWithoutCache();
                 break;
             }
             case op_iterator_open: {
                 dataLogLnIf(Options::verboseOSR(), "Clearing LLInt iterator open property access.");
-                LLIntPrototypeLoadAdaptiveStructureWatchpoint::clearLLIntGetByIdCache(instruction->as<OpIteratorOpen>().metadata(this).m_modeMetadata);
+                instruction->as<OpIteratorOpen>().metadata(this).m_modeMetadata.clearToDefaultModeWithoutCache();
                 break;
             }
             case op_iterator_next: {
@@ -1480,8 +1480,8 @@ void CodeBlock::finalizeLLIntInlineCaches()
                 // FIXME: We don't really want to clear both caches here but it's kinda annoying to figure out which one this is referring to...
                 // See: https://bugs.webkit.org/show_bug.cgi?id=210693
                 auto& metadata = instruction->as<OpIteratorNext>().metadata(this);
-                LLIntPrototypeLoadAdaptiveStructureWatchpoint::clearLLIntGetByIdCache(metadata.m_doneModeMetadata);
-                LLIntPrototypeLoadAdaptiveStructureWatchpoint::clearLLIntGetByIdCache(metadata.m_valueModeMetadata);
+                metadata.m_doneModeMetadata.clearToDefaultModeWithoutCache();
+                metadata.m_valueModeMetadata.clearToDefaultModeWithoutCache();
                 break;
             }
             default:

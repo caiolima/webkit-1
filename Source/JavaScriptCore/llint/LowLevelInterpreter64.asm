@@ -1505,7 +1505,7 @@ macro performGetByIDHelper(opcodeStruct, modeMetadataName, valueProfileName, slo
 .opGetByIdProtoLoad:
     bbneq t1, constexpr GetByIdMode::ProtoLoad, .opGetByIdArrayLength
     loadi JSCell::m_structureID[t3], t1
-    loadp %opcodeStruct%::Metadata::m_modeMetadata.%modeMetadataName%.cases[t2], t3
+    loadp %opcodeStruct%::Metadata::%modeMetadataName%.protoLoadMode.cases[t2], t3
 .casesLoop:
     loadi ProtoLoadEntry::structureID[t3], t5
     bineq t5, t1, .maybeNext
@@ -1515,7 +1515,7 @@ macro performGetByIDHelper(opcodeStruct, modeMetadataName, valueProfileName, slo
     valueProfile(opcodeStruct, valueProfileName, t2, t0)
     return(t0)
 .maybeNext:
-    btiz t5, .opGetByIdSlow
+    btiz t5, slowLabel
     addq sizeof ProtoLoadEntry, t3
     jmp .casesLoop
 
@@ -1534,7 +1534,7 @@ macro performGetByIDHelper(opcodeStruct, modeMetadataName, valueProfileName, slo
 
 .opGetByIdUnset:
     loadi JSCell::m_structureID[t3], t1
-    loadp %opcodeStruct%:::Metadata::%modeMetadataName%.unsetMode.cases[t2], t3
+    loadp %opcodeStruct%::Metadata::%modeMetadataName%.unsetMode.cases[t2], t3
 .unsetCasesLoop:
     loadi UnsetEntry::structureID[t3], t5
     bineq t5, t1, .unsetMaybeNext

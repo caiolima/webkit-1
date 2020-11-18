@@ -38,8 +38,6 @@ public:
 
     void install(VM&);
 
-    static void clearLLIntGetByIdCache(GetByIdModeMetadata&);
-
     const ObjectPropertyCondition& key() const { return m_key; }
 
     void fireInternal(VM&, const FireDetail&);

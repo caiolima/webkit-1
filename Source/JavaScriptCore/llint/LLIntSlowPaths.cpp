@@ -692,18 +692,18 @@ LLINT_SLOW_PATH_DECL(slow_path_get_by_id_direct)
     LLINT_RETURN_PROFILED(result);
 }
 
-static void setupUnsetGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm, CodeBlock* codeBlock, const Instruction* pc, OpGetById::Metadata& metadata, JSCell* baseCell, Structure* structure, PropertySlot& slot, const Identifier& ident, BytecodeIndex bytecodeIndex)
+static void setupUnsetGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm, CodeBlock* codeBlock, const Instruction* pc, GetByIdModeMetadata& metadata, JSCell* baseCell, Structure* structure, PropertySlot& slot, const Identifier& ident)
 {
     ASSERT(slot.isUnset());
 
-    if (metadata.m_modeMetadata.mode == GetByIdMode::Unset && metadata.m_modeMetadata.unsetMode.repatchCount() >= Options::maxLLIntRepatchCount()) {
+    if (metadata.mode == GetByIdMode::Unset && metadata.unsetMode.repatchCount() >= Options::maxLLIntRepatchCount()) {
         // WTF::dataLog("Gave up unset Cache\n");
-        metadata.m_modeMetadata.clearToDefaultModeWithoutCache();
-        metadata.m_modeMetadata.hitCountForLLIntCaching = 0; // disable PrototypeLoad
+        metadata.clearToDefaultModeWithoutCache();
+        metadata.hitCountForLLIntCaching = 0; // disable PrototypeLoad
         return;
     }
 
-    if (metadata.m_modeMetadata.mode != GetByIdMode::Unset && !metadata.m_modeMetadata.hitCountForLLIntCaching) {
+    if (metadata.mode != GetByIdMode::Unset && !metadata.hitCountForLLIntCaching) {
         // WTF::dataLog("PIC Unset is disabled\n");
         return;
     }
@@ -714,7 +714,7 @@ static void setupUnsetGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm
         structure->flattenDictionaryStructure(vm, jsCast<JSObject*>(baseCell));
     }
 
-    preparePrototypeChainForCaching(globalObject, baseCell, slot);
+    prepareChainForCaching(globalObject, baseCell, slot);
 
     ObjectPropertyConditionSet conditions = generateConditionsForPropertyMiss(vm, codeBlock, globalObject, structure, ident.impl());
 
@@ -738,33 +738,33 @@ static void setupUnsetGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm
     {
         ConcurrentJSLocker locker(codeBlock->m_lock);
         // It means we are starting a Unset mode
-        if (metadata.m_modeMetadata.mode != GetByIdMode::Unset) {
+        if (metadata.mode != GetByIdMode::Unset) {
             // WTF::dataLog("Changing IC mode to unset on ", *codeBlock, " ", bytecodeIndex, "\n");
-            metadata.m_modeMetadata.setUnsetMode();
+            metadata.setUnsetMode();
         }
 
         // We are seeing a polymorphic unset access
         UnsetEntry entry;
         entry.structureID = structure->id();
-        metadata.m_modeMetadata.unsetMode.addOrReplaceCase(entry);
+        metadata.unsetMode.addOrReplaceCase(entry);
         // WTF::dataLog("new PIC unset case added for ", *codeBlock, " ", bytecodeIndex, ". Total repatch: ", metadata.m_modeMetadata.unsetMode.repatchCount() ,"\n");
         // WTF::dataLog("Added unset cache case\n");
     }
     vm.heap.writeBarrier(codeBlock);
 }
 
-static void setupGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm, CodeBlock* codeBlock, const Instruction* pc, OpGetById::Metadata& metadata, JSCell* baseCell, PropertySlot& slot, const Identifier& ident, BytecodeIndex bytecodeIndex)
+static void setupGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm, CodeBlock* codeBlock, const Instruction* pc, GetByIdModeMetadata& metadata, JSCell* baseCell, PropertySlot& slot, const Identifier& ident)
 {
     UNUSED_PARAM(ident);
     Structure* structure = baseCell->structure(vm);
-    if (metadata.m_modeMetadata.mode == GetByIdMode::ProtoLoad && metadata.m_modeMetadata.protoLoadMode.repatchCount() >= Options::maxLLIntRepatchCount()) {
+    if (metadata.mode == GetByIdMode::ProtoLoad && metadata.protoLoadMode.repatchCount() >= Options::maxLLIntRepatchCount()) {
 //        WTF::dataLog("Giving up PIC\n");
-        metadata.m_modeMetadata.clearToDefaultModeWithoutCache();
-        metadata.m_modeMetadata.hitCountForLLIntCaching = 0; // disable PrototypeLoad
+        metadata.clearToDefaultModeWithoutCache();
+        metadata.hitCountForLLIntCaching = 0; // disable PrototypeLoad
         return;
     }
 
-    if (metadata.m_modeMetadata.mode != GetByIdMode::ProtoLoad && !metadata.m_modeMetadata.hitCountForLLIntCaching) {
+    if (metadata.mode != GetByIdMode::ProtoLoad && !metadata.hitCountForLLIntCaching) {
 //        WTF::dataLog("PIC is disabled with mode: ", static_cast<uint8_t>(metadata.m_modeMetadata.mode) ," on ", *codeBlock, " ", bytecodeIndex, "\n");
         return;
     }
@@ -776,12 +776,12 @@ static void setupGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm, Cod
         return;
 
     if (slot.isUnset()) {
-        setupUnsetGetByIdPrototypeCache(globalObject, vm, codeBlock, pc, metadata, baseCell, structure, slot, ident, bytecodeIndex);
+        setupUnsetGetByIdPrototypeCache(globalObject, vm, codeBlock, pc, metadata, baseCell, structure, slot, ident);
         return;
     }
 
     {
-        auto result = preparePrototypeChainForCaching(globalObject, baseCell, slot);
+        auto result = prepareChainForCaching(globalObject, baseCell, slot);
         if (!result)
             return;
         if (result->usesPolyProto || result->flattenedDictionary)
@@ -807,14 +807,14 @@ static void setupGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm, Cod
         // if (metadata.m_modeMetadata.mode != GetByIdMode::ProtoLoad)
         //     WTF::dataLog("Changing IC mode to ProtoLoad on ", *codeBlock, " ", bytecodeIndex, "\n");
 
-        metadata.m_modeMetadata.setProtoLoadMode();
+        metadata.setProtoLoadMode();
 
         JSObject* current = asObject(structure->prototypeForLookup(globalObject));
 
         unsigned bytecodeOffset = codeBlock->bytecodeOffset(pc);
         while (1) {
             Structure* structure = current->structure(vm);
-            auto* watchpoint = metadata.m_modeMetadata.protoLoadMode.watchpoints().add(codeBlock, structure, bytecodeOffset);
+            auto* watchpoint = metadata.protoLoadMode.watchpoints().add(codeBlock, structure, bytecodeOffset);
             watchpoint->install();
 
             if (current == slot.slotBase())
@@ -828,7 +828,7 @@ static void setupGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm, Cod
         entry.cachedOffset = slot.cachedOffset();
         entry.cachedSlot = slot.slotBase();
 
-        metadata.m_modeMetadata.protoLoadMode.addOrReplaceCase(entry);
+        metadata.protoLoadMode.addOrReplaceCase(entry);
         // WTF::dataLog("new PIC ProtoLoad case added for ", *codeBlock, " ", bytecodeIndex, ". Total repatch: ", metadata.m_modeMetadata.protoLoadMode.repatchCount(), "\n");
     }
 
@@ -850,21 +850,21 @@ static JSValue performLLIntGetByID(const Instruction* pc, CodeBlock* codeBlock, 
         && !slot.isUnset()) {
         {
             StructureID oldStructureID = 0;
-            switch (metadata.m_modeMetadata.mode) {
+            switch (metadata.mode) {
             case GetByIdMode::Default:
                 oldStructureID = metadata.defaultMode.structureID;
                 break;
             case GetByIdMode::Unset:
-                // oldStructureID = metadata.m_modeMetadata.unsetMode.structureID
-                if (metadata.m_modeMetadata.unsetMode.numCases() == 1) { // OOPS: maybe consider all cases?
-                    metadata.m_modeMetadata.unsetMode.forEachCase([&] (const UnsetEntry& entry) {
+                // oldStructureID = metadata.unsetMode.structureID
+                if (metadata.unsetMode.numCases() == 1) { // OOPS: maybe consider all cases?
+                    metadata.unsetMode.forEachCase([&] (const UnsetEntry& entry) {
                         oldStructureID = entry.structureID;
                     });
                 }
                 break;
             case GetByIdMode::ProtoLoad:
-                if (metadata.m_modeMetadata.protoLoadMode.numCases() == 1) { // OOPS: maybe consider all cases?
-                    metadata.m_modeMetadata.protoLoadMode.forEachCase([&] (const ProtoLoadEntry& entry) {
+                if (metadata.protoLoadMode.numCases() == 1) { // OOPS: maybe consider all cases?
+                    metadata.protoLoadMode.forEachCase([&] (const ProtoLoadEntry& entry) {
                         oldStructureID = entry.structureID;
                     });
                 }
@@ -900,7 +900,7 @@ static JSValue performLLIntGetByID(const Instruction* pc, CodeBlock* codeBlock, 
                 vm.heap.writeBarrier(codeBlock);
             }
         } else if (slot.isValue()) {
-            setupGetByIdPrototypeCache(globalObject, vm, codeBlock, pc, metadata, baseCell, slot, ident, callFrame->bytecodeIndex());
+            setupGetByIdPrototypeCache(globalObject, vm, codeBlock, pc, metadata, baseCell, slot, ident);
         }
     } else if (!LLINT_ALWAYS_ACCESS_SLOW && isJSArray(baseValue) && ident == vm.propertyNames->length) {
         {
@@ -910,9 +910,9 @@ static JSValue performLLIntGetByID(const Instruction* pc, CodeBlock* codeBlock, 
         }
         vm.heap.writeBarrier(codeBlock);
     } else if (!LLINT_ALWAYS_ACCESS_SLOW && baseValue.isCell() && slot.isCacheable() && slot.isUnset()) {
-        JSCell* baseCell = baseValue.asCell();
-        Structure* structure = baseCell->structure(vm);
-        setupUnsetGetByIdPrototypeCache(globalObject, vm, codeBlock, pc, metadata, baseCell, structure, slot, ident, callFrame->bytecodeIndex());
+        // JSCell* baseCell = baseValue.asCell();
+        // Structure* structure = baseCell->structure(vm);
+        // setupUnsetGetByIdPrototypeCache(globalObject, vm, codeBlock, pc, metadata, baseCell, structure, slot, ident);
     }
 
     return result;
