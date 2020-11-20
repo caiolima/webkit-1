@@ -110,8 +110,30 @@ void LLIntInlineCacheClearingStructureTransitionWatchpoint::fireInternal(VM&, co
 
     ConcurrentJSLocker locker(m_owner->m_lock);
     auto& instruction = m_owner->instructions().at(m_bytecodeOffset.get());
-    auto& metadata = instruction->as<OpGetById>().metadata(m_owner.get());
-    metadata.m_modeMetadata.clearToDefaultModeWithoutCache();
+    switch (instruction->opcodeID()) {
+        case op_get_by_id: {
+            auto& metadata = instruction->as<OpGetById>().metadata(m_owner.get());
+            metadata.m_modeMetadata.clearToDefaultModeWithoutCache();
+            break;
+        }
+            
+        case op_iterator_open: {
+            auto& metadata = instruction->as<OpIteratorOpen>().metadata(m_owner.get());
+            metadata.m_modeMetadata.clearToDefaultModeWithoutCache();
+            break;
+        }
+            
+        case op_iterator_next: {
+            auto& metadata = instruction->as<OpIteratorNext>().metadata(m_owner.get());
+            metadata.m_doneModeMetadata.clearToDefaultModeWithoutCache();
+            metadata.m_valueModeMetadata.clearToDefaultModeWithoutCache();
+            break;
+        }
+            
+        default:
+            RELEASE_ASSERT_NOT_REACHED();
+            break;
+    }
 }
 
 } // namespace JSC
