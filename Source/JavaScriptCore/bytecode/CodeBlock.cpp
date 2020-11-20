@@ -857,6 +857,13 @@ CodeBlock::~CodeBlock()
         m_metadata->forEach<OpGetById>([&] (auto& metadata) {
             metadata.m_modeMetadata.freeOldIfNeeded();
         });
+        m_metadata->forEach<OpIteratorOpen>([&] (auto& metadata) {
+            metadata.m_modeMetadata.freeOldIfNeeded();
+        });
+        m_metadata->forEach<OpIteratorNext>([&] (auto& metadata) {
+            metadata.m_doneModeMetadata.freeOldIfNeeded();
+            metadata.m_valueModeMetadata.freeOldIfNeeded();
+        });
     }
 
 #endif
@@ -1264,9 +1271,6 @@ void CodeBlock::finalizeLLIntInlineCaches()
         // We need to add optimizations for op_resolve_scope_for_hoisting_func_decl_in_eval to do link time scope resolution.
 
         auto clearIfNeeded = [&] (GetByIdModeMetadata& modeMetadata, ASCIILiteral opName) {
-            if (modeMetadata.mode != GetByIdMode::Default)
-                return;
-            
             if (modeMetadata.mode == GetByIdMode::Default) {
                 StructureID oldStructureID = modeMetadata.defaultMode.structureID;
                 if (!oldStructureID || vm.heap.isMarked(vm.heap.structureIDTable().get(oldStructureID)))
