@@ -757,7 +757,7 @@ static void setupGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm, Cod
 {
     UNUSED_PARAM(ident);
     Structure* structure = baseCell->structure(vm);
-    if (metadata.mode == GetByIdMode::ProtoLoad && metadata.protoLoadMode.repatchCount() >= Options::maxLLIntRepatchCount()) {
+    if (metadata.mode == GetByIdMode::ProtoLoad && metadata.protoLoadMode.numCases() >= Options::maxAccessVariantListSize()) {
 //        WTF::dataLog("Giving up PIC\n");
         metadata.clearToDefaultModeWithoutCache();
         metadata.hitCountForLLIntCaching = 0; // disable PrototypeLoad
@@ -774,11 +774,6 @@ static void setupGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm, Cod
     
     if (structure->needImpurePropertyWatchpoint())
         return;
-
-    if (slot.isUnset()) {
-        setupUnsetGetByIdPrototypeCache(globalObject, vm, codeBlock, pc, metadata, baseCell, structure, slot, ident);
-        return;
-    }
 
     {
         auto result = prepareChainForCaching(globalObject, baseCell, slot);
@@ -804,10 +799,10 @@ static void setupGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm, Cod
     {
         ConcurrentJSLocker locker(codeBlock->m_lock);
 
-        // if (metadata.m_modeMetadata.mode != GetByIdMode::ProtoLoad)
-        //     WTF::dataLog("Changing IC mode to ProtoLoad on ", *codeBlock, " ", bytecodeIndex, "\n");
-
-        metadata.setProtoLoadMode();
+        if (metadata.mode != GetByIdMode::ProtoLoad) {
+//            WTF::dataLog("Changing IC mode to ProtoLoad on ", *codeBlock, " ", bytecodeIndex, "\n");
+            metadata.setProtoLoadMode();
+        }
 
         JSObject* current = asObject(structure->prototypeForLookup(globalObject));
 
