@@ -151,6 +151,7 @@ JS_EXPORT_PRIVATE bool canUseJITCage();
     v(Bool, useProbeOSRExit, false, Normal, nullptr) \
     v(Bool, printEachOSRExit, false, Normal, nullptr) \
     v(Bool, validateDoesGC, ASSERT_ENABLED, Normal, nullptr) \
+    v(Bool, useUnsetPIC, true, Normal, nullptr) \
     v(Bool, validateGraph, false, Normal, nullptr) \
     v(Bool, validateGraphAtEachPhase, false, Normal, nullptr) \
     v(Bool, verboseValidationFailure, false, Normal, nullptr) \
