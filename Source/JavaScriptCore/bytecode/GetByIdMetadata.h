@@ -43,68 +43,70 @@ struct GetByIdModeMetadataDefault {
 };
 static_assert(sizeof(GetByIdModeMetadataDefault) == 12);
 
-struct UnsetEntry {
-    StructureID structureID;
-    unsigned repatchCount;
-};
+// struct UnsetEntry {
+//     ;
+//     unsigned repatchCount;
+// };
 
 struct GetByIdModeMetadataUnset {
-    size_t numCases() const
-    {
-        if (!cases)
-            return 0;
-        size_t i = 0;
-        for (auto* ptr = cases; ptr->structureID; ++ptr)
-            ++i;
-        return i;
-    }
+//    size_t numCases() const
+//    {
+//        if (!cases)
+//            return 0;
+//        size_t i = 0;
+//        for (auto* ptr = cases; ptr->structureID; ++ptr)
+//            ++i;
+//        return i;
+//    }
+//
+//    template <typename F>
+//    void forEachCase(F f)
+//    {
+//        if (!cases)
+//            return;
+//        for (auto* ptr = cases; ptr->structureID; ++ptr)
+//            f(*ptr);
+//    }
+//
+//    void addOrReplaceCase(UnsetEntry entry)
+//    {
+//        size_t numCases = this->numCases();
+//
+//        if (numCases >= Options::maxAccessVariantListSize()) {
+//            unsigned repatchCount = cases[0].repatchCount;
+//            for (size_t i = numCases - 1; i > 0; i--)
+//                cases[i] = cases[i - 1];
+//            entry.repatchCount = repatchCount + 1;
+//            cases[0] = entry;
+//            return;
+//        }
+//
+//        ASSERT(numCases < Options::maxAccessVariantListSize());
+//        UnsetEntry* array = static_cast<UnsetEntry*>(fastMalloc(sizeof(UnsetEntry) * (numCases + 2)));
+//        if (cases) {
+//            memcpy(array + 1, cases, sizeof(UnsetEntry) * (numCases + 1));
+//            ASSERT(array[numCases + 1].structureID == 0);
+//            fastFree(cases);
+//        } else
+//            array[numCases + 1].structureID = 0;
+//
+//        entry.repatchCount = numCases + 1;
+//        cases = array;
+//        *cases = entry;
+//    }
+//
+//    unsigned repatchCount()
+//    {
+//        if (!cases)
+//            return 0;
+//        return cases[0].repatchCount;
+//    }
 
-    template <typename F>
-    void forEachCase(F f)
-    {
-        if (!cases)
-            return;
-        for (auto* ptr = cases; ptr->structureID; ++ptr)
-            f(*ptr);
-    }
-
-    void addOrReplaceCase(UnsetEntry entry)
-    {
-        size_t numCases = this->numCases();
-
-        if (numCases >= Options::maxAccessVariantListSize()) {
-            unsigned repatchCount = cases[0].repatchCount;
-            for (size_t i = numCases - 1; i > 0; i--)
-                cases[i] = cases[i - 1];
-            entry.repatchCount = repatchCount + 1;
-            cases[0] = entry;
-            return;
-        }
-
-        ASSERT(numCases < Options::maxAccessVariantListSize());
-        UnsetEntry* array = static_cast<UnsetEntry*>(fastMalloc(sizeof(UnsetEntry) * (numCases + 2)));
-        if (cases) {
-            memcpy(array + 1, cases, sizeof(UnsetEntry) * (numCases + 1));
-            ASSERT(array[numCases + 1].structureID == 0);
-            fastFree(cases);
-        } else
-            array[numCases + 1].structureID = 0;
-
-        entry.repatchCount = numCases + 1;
-        cases = array;
-        *cases = entry;
-    }
-
-    unsigned repatchCount()
-    {
-        if (!cases)
-            return 0;
-        return cases[0].repatchCount;
-    }
-
-    UnsetEntry* cases;
+    StructureID structureID;
+    unsigned padding1;
+    unsigned padding2;
 };
-static_assert(sizeof(GetByIdModeMetadataUnset) == 8);
+static_assert(sizeof(GetByIdModeMetadataUnset) == 12);
 
 struct GetByIdModeMetadataArrayLength {
     ArrayProfile arrayProfile;
@@ -199,7 +201,7 @@ static_assert(sizeof(GetByIdModeMetadataProtoLoad) == 16);
 //     }
 // 
 //     void clearToDefaultModeWithoutCache();
-//     void setUnsetMode();
+//     void setUnsetMode(Structure*);
 //     void setArrayLengthMode();
 //     void setProtoLoadMode();
 //     void freeOldIfNeeded();
@@ -230,7 +232,7 @@ struct GetByIdModeMetadata {
     }
 
     void clearToDefaultModeWithoutCache();
-    void setUnsetMode();
+    void setUnsetMode(Structure*);
     void setArrayLengthMode();
     void setProtoLoadMode();
     void freeOldIfNeeded();
@@ -253,9 +255,6 @@ inline void GetByIdModeMetadata::freeOldIfNeeded()
         protoLoadMode.watchpoints().clear();
         if (protoLoadMode.cases)
             fastFree(protoLoadMode.cases);
-    } else if (mode == GetByIdMode::Unset) {
-        if (unsetMode.cases)
-            fastFree(unsetMode.cases);
     }
 }
 
@@ -269,11 +268,11 @@ inline void GetByIdModeMetadata::clearToDefaultModeWithoutCache()
     defaultMode.cachedOffset = 0;
 }
 
-inline void GetByIdModeMetadata::setUnsetMode()
+inline void GetByIdModeMetadata::setUnsetMode(Structure* structure)
 {
     freeOldIfNeeded();
     mode = GetByIdMode::Unset;
-    unsetMode.cases = nullptr;
+    unsetMode.structureID = structure->id();
 }
 
 inline void GetByIdModeMetadata::setArrayLengthMode()
