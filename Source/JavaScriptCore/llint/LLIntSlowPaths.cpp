@@ -696,7 +696,7 @@ static void setupUnsetGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm
 {
     ASSERT(slot.isUnset());
 
-    if (metadata.mode != GetByIdMode::Default || !metadata.hitCountForLLIntCaching) {
+    if (metadata.mode != GetByIdMode::Default || metadata.disabledCache) {
         // WTF::dataLog("PIC Unset is disabled\n");
         return;
     }
@@ -751,11 +751,11 @@ static void setupGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm, Cod
     if (metadata.mode == GetByIdMode::ProtoLoad && metadata.protoLoadMode.numCases() >= Options::maxAccessVariantListSize()) {
         // WTF::dataLog("Giving up PIC\n");
         metadata.clearToDefaultModeWithoutCache();
-        metadata.hitCountForLLIntCaching = 0;
+        metadata.disabledCache = true;
         return;
     }
 
-    if (metadata.mode != GetByIdMode::ProtoLoad && !metadata.hitCountForLLIntCaching) {
+    if (metadata.mode != GetByIdMode::ProtoLoad && metadata.disabledCache) {
         // WTF::dataLog("PIC is disabled with mode: ", static_cast<uint8_t>(metadata.mode) ," on ", *codeBlock, "\n");
         return;
     }
@@ -873,7 +873,7 @@ static JSValue performLLIntGetByID(const Instruction* pc, CodeBlock* codeBlock, 
 
             // Prevent the prototype cache from ever happening.
 
-            metadata.hitCountForLLIntCaching = 0;
+            metadata.disabledCache = true;
         
             if (structure->propertyAccessesAreCacheable() && !structure->needImpurePropertyWatchpoint()) {
                 metadata.defaultMode.structureID = structure->id();
