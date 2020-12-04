@@ -697,7 +697,7 @@ static void setupUnsetGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm
     ASSERT(slot.isUnset());
 
     if (metadata.mode != GetByIdMode::Default || metadata.disabledCache) {
-        // WTF::dataLog("PIC Unset is disabled\n");
+        WTF::dataLogLnIf(Options::verbosePIC(), "PIC Unset is disabled");
         return;
     }
 
@@ -733,12 +733,12 @@ static void setupUnsetGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm
         // It means we are starting a Unset mode
         // WTF::dataLog("Changing IC mode to unset on ", *codeBlock, " ", bytecodeIndex, "\n");
         metadata.setUnsetMode(structure);
+        WTF::dataLogLnIf(Options::verbosePIC(), "new PIC unset case added for ", *codeBlock, ".");
 
         // // We are seeing a polymorphic unset access
         // UnsetEntry entry;
         // entry.structureID = structure->id();
         // metadata.unsetMode.addOrReplaceCase(entry);
-        // WTF::dataLog("new PIC unset case added for ", *codeBlock, " ", bytecodeIndex, ". Total repatch: ", metadata.m_modeMetadata.unsetMode.repatchCount() ,"\n");
         // WTF::dataLog("Added unset cache case\n");
     }
     vm.heap.writeBarrier(codeBlock);
@@ -749,14 +749,14 @@ static void setupGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm, Cod
     UNUSED_PARAM(ident);
     Structure* structure = baseCell->structure(vm);
     if (metadata.mode == GetByIdMode::ProtoLoad && metadata.protoLoadMode.numCases() >= Options::maxAccessVariantListSize()) {
-        // WTF::dataLog("Giving up PIC\n");
+        WTF::dataLogLnIf(Options::verbosePIC(), "Giving up PIC");
         metadata.clearToDefaultModeWithoutCache();
-        metadata.disabledCache = true;
+        metadata.disabledCache = 1;
         return;
     }
 
     if (metadata.mode != GetByIdMode::ProtoLoad && metadata.disabledCache) {
-        // WTF::dataLog("PIC is disabled with mode: ", static_cast<uint8_t>(metadata.mode) ," on ", *codeBlock, "\n");
+        WTF::dataLogLnIf(Options::verbosePIC(), "PIC is disabled with mode: ", static_cast<uint8_t>(metadata.mode) ," on ", *codeBlock);
         return;
     }
 
@@ -791,7 +791,7 @@ static void setupGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm, Cod
         ConcurrentJSLocker locker(codeBlock->m_lock);
 
         if (metadata.mode != GetByIdMode::ProtoLoad) {
-            // WTF::dataLog("Changing IC mode to ProtoLoad on ", *codeBlock, "\n");
+            WTF::dataLogLnIf(Options::verbosePIC(), "Changing IC mode to ProtoLoad on ", *codeBlock);
             metadata.setProtoLoadMode();
         }
 
@@ -815,13 +815,13 @@ static void setupGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm, Cod
         entry.cachedSlot = slot.slotBase();
 
         metadata.protoLoadMode.addOrReplaceCase(entry);
-        // WTF::dataLog("new PIC ProtoLoad case added for ", *codeBlock, ". Total repatch: ", metadata.protoLoadMode.repatchCount(), "\n");
+        WTF::dataLogLnIf(Options::verbosePIC(), "new PIC ProtoLoad case added for ", *codeBlock, ". Total repatch: ", metadata.protoLoadMode.repatchCount());
     }
 
     vm.heap.writeBarrier(codeBlock);
 }
 
-static JSValue performLLIntGetByID(const Instruction* pc, CodeBlock* codeBlock, JSGlobalObject* globalObject, JSValue baseValue, const Identifier& ident, GetByIdModeMetadata& metadata)
+static JSValue performLLIntGetByID(const Instruction* pc, CodeBlock* codeBlock, JSGlobalObject* globalObject, JSValue baseValue, const Identifier& ident, GetByIdModeMetadata& metadata, BytecodeIndex bytecodeIndex)
 {
     VM& vm = globalObject->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);
@@ -829,6 +829,8 @@ static JSValue performLLIntGetByID(const Instruction* pc, CodeBlock* codeBlock, 
 
     JSValue result = baseValue.get(globalObject, ident, slot);
     RETURN_IF_EXCEPTION(throwScope, { });
+
+    WTF::dataLogLnIf(Options::verbosePIC(), "Cache miss on ", *codeBlock, " ", bytecodeIndex);
 
     if (!LLINT_ALWAYS_ACCESS_SLOW
         && baseValue.isCell()
@@ -873,9 +875,10 @@ static JSValue performLLIntGetByID(const Instruction* pc, CodeBlock* codeBlock, 
 
             // Prevent the prototype cache from ever happening.
 
-            metadata.disabledCache = true;
+            metadata.disabledCache = 1;
         
             if (structure->propertyAccessesAreCacheable() && !structure->needImpurePropertyWatchpoint()) {
+                WTF::dataLogLnIf(Options::verbosePIC(), "Adding selaccess IC ", *codeBlock, " ", bytecodeIndex);
                 metadata.defaultMode.structureID = structure->id();
                 metadata.defaultMode.cachedOffset = slot.cachedOffset();
                 vm.heap.writeBarrier(codeBlock);
@@ -907,7 +910,7 @@ LLINT_SLOW_PATH_DECL(slow_path_get_by_id)
     const Identifier& ident = codeBlock->identifier(bytecode.m_property);
     JSValue baseValue = getOperand(callFrame, bytecode.m_base);
 
-    JSValue result = performLLIntGetByID(pc, codeBlock, globalObject, baseValue, ident, metadata.m_modeMetadata);
+    JSValue result = performLLIntGetByID(pc, codeBlock, globalObject, baseValue, ident, metadata.m_modeMetadata, callFrame->bytecodeIndex());
     LLINT_RETURN_PROFILED(result);
 }
 
@@ -923,7 +926,7 @@ LLINT_SLOW_PATH_DECL(slow_path_iterator_open_get_next)
     if (!iterator.isObject())
         LLINT_THROW(createTypeError(globalObject, "Iterator result interface is not an object."_s));
 
-    JSValue result = performLLIntGetByID(pc, codeBlock, globalObject, iterator, vm.propertyNames->next, metadata.m_modeMetadata);
+    JSValue result = performLLIntGetByID(pc, codeBlock, globalObject, iterator, vm.propertyNames->next, metadata.m_modeMetadata, callFrame->bytecodeIndex());
     LLINT_CHECK_EXCEPTION();
     nextRegister = result;
     bytecode.metadata(codeBlock).m_nextProfile.m_buckets[0] = JSValue::encode(result);
@@ -943,7 +946,7 @@ LLINT_SLOW_PATH_DECL(slow_path_iterator_next_get_done)
     if (!iteratorReturn.isObject())
         LLINT_THROW(createTypeError(globalObject, "Iterator result interface is not an object."_s));
 
-    JSValue result = performLLIntGetByID(pc, codeBlock, globalObject, iteratorReturn, vm.propertyNames->done, metadata.m_doneModeMetadata);
+    JSValue result = performLLIntGetByID(pc, codeBlock, globalObject, iteratorReturn, vm.propertyNames->done, metadata.m_doneModeMetadata, callFrame->bytecodeIndex());
     LLINT_CHECK_EXCEPTION();
     doneRegister = result;
     bytecode.metadata(codeBlock).m_doneProfile.m_buckets[0] = JSValue::encode(result);
@@ -960,7 +963,7 @@ LLINT_SLOW_PATH_DECL(slow_path_iterator_next_get_value)
     Register& valueRegister = callFrame->uncheckedR(bytecode.m_value);
     JSValue iteratorReturn = valueRegister.jsValue();
 
-    JSValue result = performLLIntGetByID(pc, codeBlock, globalObject, iteratorReturn, vm.propertyNames->value, metadata.m_valueModeMetadata);
+    JSValue result = performLLIntGetByID(pc, codeBlock, globalObject, iteratorReturn, vm.propertyNames->value, metadata.m_valueModeMetadata, callFrame->bytecodeIndex());
     LLINT_CHECK_EXCEPTION();
     valueRegister = result;
     bytecode.metadata(codeBlock).m_valueProfile.m_buckets[0] = JSValue::encode(result);
