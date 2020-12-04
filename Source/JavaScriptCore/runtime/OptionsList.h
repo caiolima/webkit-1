@@ -146,6 +146,7 @@ JS_EXPORT_PRIVATE bool canUseJITCage();
     v(Bool, verboseDFGBytecodeParsing, false, Normal, nullptr) \
     v(Bool, safepointBeforeEachPhase, true, Normal, nullptr) \
     v(Bool, verboseCompilation, false, Normal, nullptr) \
+    v(Bool, verbosePIC, false, Normal, nullptr) \
     v(Bool, verboseFTLCompilation, false, Normal, nullptr) \
     v(Bool, logCompilationChanges, false, Normal, nullptr) \
     v(Bool, useProbeOSRExit, false, Normal, nullptr) \

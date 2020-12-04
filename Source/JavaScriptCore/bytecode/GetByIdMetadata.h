@@ -117,7 +117,7 @@ struct ProtoLoadEntry {
     StructureID structureID;
     PropertyOffset cachedOffset;
     JSObject* cachedSlot;
-    unsigned repatchCount; // we are placing repatch count here to keep sizeof(GetByIdModeMetadataProtoLoad) == 16
+    // unsigned repatchCount; // we are placing repatch count here to keep sizeof(GetByIdModeMetadataProtoLoad) == 16
 };
 
 struct GetByIdModeMetadataProtoLoad {
@@ -145,10 +145,10 @@ struct GetByIdModeMetadataProtoLoad {
         size_t numCases = this->numCases();
 
         if (numCases >= Options::maxAccessVariantListSize()) {
-            unsigned repatchCount = cases[0].repatchCount;
+            // unsigned repatchCount = cases[0].repatchCount;
             for (size_t i = numCases - 1; i > 0; i--)
                 cases[i] = cases[i - 1];
-            entry.repatchCount = repatchCount + 1;
+            // entry.repatchCount = repatchCount + 1;
             cases[0] = entry;
             return;
         }
@@ -162,16 +162,17 @@ struct GetByIdModeMetadataProtoLoad {
         } else
             array[numCases + 1].structureID = 0;
 
-        entry.repatchCount = numCases + 1;
+        // entry.repatchCount = numCases + 1;
         cases = array;
         *cases = entry;
     }
 
     unsigned repatchCount()
     {
-        if (!cases)
-            return 0;
-        return cases[0].repatchCount;
+        return 0;
+        // if (!cases)
+        //     return 0;
+        // return cases[0].repatchCount;
     }
 
     Bag<LLIntInlineCacheClearingStructureTransitionWatchpoint>& watchpoints()
@@ -197,7 +198,7 @@ union GetByIdModeMetadata {
         defaultMode.cachedOffset = 0;
         defaultMode.padding1 = 0;
         mode = GetByIdMode::Default;
-        disabledCache = false;
+        disabledCache = 0;
     }
 
     void clearToDefaultModeWithoutCache();
@@ -212,7 +213,7 @@ union GetByIdModeMetadata {
         uint32_t padding3;
         uint16_t padding4;
         GetByIdMode mode;
-        bool disabledCache; // This must be zero when we use ProtoLoad mode.
+        uint8_t disabledCache; // This must be zero when we use ProtoLoad mode.
     };
     GetByIdModeMetadataDefault defaultMode;
     GetByIdModeMetadataUnset unsetMode;
@@ -228,7 +229,7 @@ struct GetByIdModeMetadata {
         defaultMode.cachedOffset = 0;
         defaultMode.padding1 = 0;
         mode = GetByIdMode::Default;
-        disabledCache = false;
+        disabledCache = 0;
     }
 
     void clearToDefaultModeWithoutCache();
@@ -281,7 +282,7 @@ inline void GetByIdModeMetadata::setArrayLengthMode()
     mode = GetByIdMode::ArrayLength;
     new (&arrayLengthMode.arrayProfile) ArrayProfile;
     // Prevent the prototype cache from ever happening.
-    disabledCache = true;
+    disabledCache = 1;
 }
 
 inline void GetByIdModeMetadata::setProtoLoadMode()
