@@ -596,6 +596,7 @@ op :set_private_brand,
     metadata: {
         oldStructureID: StructureID,
         newStructureID: StructureID,
+        brand: WriteBarrier[JSCell],
     }
 
 op :check_private_brand,

@@ -1550,24 +1550,12 @@ Structure* Structure::setBrandTransition(VM& vm, Structure* structure, Symbol* b
         }
     }
 
+    // FIXME: We should difinitely avoid keep copying PropertyTable on dictionaries
+    // just to have parent brand pointer.
+
     Structure* transition = BrandedStructure::create(vm, structure, brand, deferred);
 
     transition->m_cachedPrototypeChain.setMayBeNull(vm, transition, structure->m_cachedPrototypeChain.get());
-    
-    // // While we are adding the property, rematerializing the property table is super weird: we already
-    // // have a m_transitionPropertyName and transitionPropertyAttributes but the m_transitionOffset is still wrong. If the
-    // // materialization algorithm runs, it'll build a property table that already has the property but
-    // // at a bogus offset. Rather than try to teach the materialization code how to create a table under
-    // // those conditions, we just tell the GC not to blow the table away during this period of time.
-    // // Holding the lock ensures that we either do this before the GC starts scanning the structure, in
-    // // which case the GC will not blow the table away, or we do it after the GC already ran in which
-    // // case all is well.  If it wasn't for the lock, the GC would have TOCTOU: if could read
-    // // protectPropertyTableWhileTransitioning before we set it to true, and then blow the table away after.
-    // {
-    //     ConcurrentJSLocker locker(transition->lock());
-    //     transition->setProtectPropertyTableWhileTransitioning(true);
-    // }
-
     transition->m_blob.setIndexingModeIncludingHistory(structure->indexingModeIncludingHistory());
     transition->m_transitionPropertyName = &brand->uid();
     transition->setTransitionPropertyAttributes(0);
@@ -1575,13 +1563,6 @@ Structure* Structure::setBrandTransition(VM& vm, Structure* structure, Symbol* b
     transition->setPropertyTable(vm, structure->takePropertyTableOrCloneIfPinned(vm));
     transition->setMaxOffset(vm, structure->maxOffset());
 
-    // // Now that everything is fine with the new structure's bookkeeping, the GC is free to blow the
-    // // table away if it wants. We can now rebuild it fine.
-    // WTF::storeStoreFence();
-    // transition->setProtectPropertyTableWhileTransitioning(false);
-
-    // checkOffset(transition->transitionOffset(), transition->inlineCapacity());
-    
     if (structure->isDictionary()) {
         PropertyTable* table = transition->ensurePropertyTable(vm);
         transition->pin(holdLock(transition->m_lock), vm, table);

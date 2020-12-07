@@ -1816,6 +1816,22 @@ llintOpWithMetadata(op_put_private_name, OpPutPrivateName, macro (size, get, dis
 end)
 
 llintOpWithMetadata(op_set_private_brand, OpSetPrivateBrand, macro (size, get, dispatch, metadata, return)
+    get(m_base, t3)
+    loadConstantOrVariableCell(size, t3, t0, .opSetPrivateBrandSlow)
+    get(m_brand, t3)
+    loadConstantOrVariableCell(size, t3, t1, .opSetPrivateBrandSlow)
+    metadata(t5, t2)
+    loadi OpSetPrivateBrand::Metadata::m_oldStructureID[t5], t2
+    bineq t2, JSCell::m_structureID[t0], .opSetPrivateBrandSlow
+
+    loadp OpSetPrivateBrand::Metadata::m_brand[t5], t3
+    bqneq t3, t1, .opSetPrivateBrandSlow
+
+    loadi OpPutPrivateName::Metadata::m_newStructureID[t5], t1
+    storei t1, JSCell::m_structureID[t0]
+    dispatch()
+
+.opSetPrivateBrandSlow:
     callSlowPath(_llint_slow_path_set_private_brand)
     dispatch()
 end)

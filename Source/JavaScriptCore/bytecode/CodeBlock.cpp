@@ -1341,6 +1341,21 @@ void CodeBlock::finalizeLLIntInlineCaches()
             metadata.m_property.clear();
         });
 
+        m_metadata->forEach<OpSetPrivateBrand>([&] (auto& metadata) {
+            StructureID oldStructureID = metadata.m_oldStructureID;
+            StructureID newStructureID = metadata.m_newStructureID;
+            JSCell* brand = metadata.m_brand.get();
+            if ((!oldStructureID || vm.heap.isMarked(vm.heap.structureIDTable().get(oldStructureID)))
+                && (!brand || vm.heap.isMarked(brand))
+                && (!newStructureID || vm.heap.isMarked(vm.heap.structureIDTable().get(newStructureID))))
+                return;
+
+            dataLogLnIf(Options::verboseOSR(), "Clearing LLInt set_private_brand transition.");
+            metadata.m_oldStructureID = 0;
+            metadata.m_newStructureID = 0;
+            metadata.m_brand.clear();
+        });
+
         m_metadata->forEach<OpToThis>([&] (auto& metadata) {
             if (!metadata.m_cachedStructureID || vm.heap.isMarked(vm.heap.structureIDTable().get(metadata.m_cachedStructureID)))
                 return;

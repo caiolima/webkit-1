@@ -694,6 +694,7 @@ inline void JSObject::setPrivateBrand(JSGlobalObject* globalObject, JSValue bran
     Structure* structure = this->structure(vm);
     if (structure->isBrandedStructure() && jsCast<BrandedStructure*>(structure)->checkBrand(asSymbol(brand))) {
         // We are trying to install a brand already installed
+        // FIXME: Put a better error message
         throwException(globalObject, scope, createInvalidPrivateNameError(globalObject));
         RELEASE_AND_RETURN(scope, void());
     }
@@ -701,7 +702,6 @@ inline void JSObject::setPrivateBrand(JSGlobalObject* globalObject, JSValue bran
 
     scope.release();
 
-    // Now we know proeprty is not set, we need to do so
     DeferredStructureTransitionWatchpointFire deferredWatchpointFire(vm, structure);
 
     Structure* newStructure = Structure::setBrandTransition(vm, structure, asSymbol(brand), &deferredWatchpointFire);

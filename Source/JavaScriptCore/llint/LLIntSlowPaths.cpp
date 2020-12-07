@@ -1308,15 +1308,36 @@ LLINT_SLOW_PATH_DECL(slow_path_set_private_brand)
     auto bytecode = pc->as<OpSetPrivateBrand>();
     JSValue baseValue = getOperand(callFrame, bytecode.m_base);
     JSValue brand = getOperand(callFrame, bytecode.m_brand);
-
-    // OOPS: Check on spec if this should be an assert instead
-    JSObject* baseObject = baseValue.toObject(globalObject);
-    LLINT_CHECK_EXCEPTION();
-
+    auto& metadata = bytecode.metadata(codeBlock);
+    ASSERT(baseValue.isObject());
     ASSERT(brand.isSymbol());
+
+    JSObject* baseObject = asObject(baseValue);
+    Structure* oldStructure = baseObject->structure(vm);
 
     baseObject->setPrivateBrand(globalObject, brand);
     LLINT_CHECK_EXCEPTION();
+
+
+    if (!LLINT_ALWAYS_ACCESS_SLOW && !oldStructure->isDictionary()) {
+        GCSafeConcurrentJSLocker locker(codeBlock->m_lock, vm.heap);
+        Structure* newStructure = baseObject->structure(vm);
+
+        ASSERT(oldStructure == newStructure->previousID());
+        ASSERT(oldStructure->transitionWatchpointSetHasBeenInvalidated());
+
+        // Start out by clearing out the old cache.
+        metadata.m_oldStructureID = 0;
+        metadata.m_newStructureID = 0;
+        metadata.m_brand.clear();
+
+        if (!newStructure->isDictionary()) {
+            metadata.m_oldStructureID = oldStructure->id();
+            metadata.m_newStructureID = newStructure->id();
+            metadata.m_brand.set(vm, codeBlock, brand.asCell());
+        }
+        vm.heap.writeBarrier(codeBlock);
+    }
 
     LLINT_END();    
 }
@@ -1329,7 +1350,6 @@ LLINT_SLOW_PATH_DECL(slow_path_check_private_brand)
     JSValue baseValue = getOperand(callFrame, bytecode.m_base);
     JSValue brand = getOperand(callFrame, bytecode.m_brand);
 
-    // OOPS: Check on spec if this should be an assert instead
     JSObject* baseObject = baseValue.toObject(globalObject);
     LLINT_CHECK_EXCEPTION();
 
