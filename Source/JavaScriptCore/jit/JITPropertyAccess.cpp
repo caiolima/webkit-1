@@ -142,28 +142,53 @@ void JIT::emitSlow_op_get_private_name(const Instruction* currentInstruction, Ve
     gen.reportSlowPathCall(coldPathBegin, call);
 }
 
-void JIT::emit_op_set_private_brand(const Instruction*)
+void JIT::emit_op_set_private_brand(const Instruction* currentInstruction)
 {
     // OOPS: Implement this
-    CRASH();
+    auto bytecode = currentInstruction->as<OpSetPrivateBrand>();
+    VirtualRegister base = bytecode.m_base;
+    VirtualRegister brand = bytecode.m_brand;
+    GPRReg baseGPR = regT0;
+    GPRReg brandGPR = regT1;
+    emitGetVirtualRegister(base, baseGPR);
+    emitGetVirtualRegister(brand, brandGPR);
+
+    addSlowCase(jump());
 }
 
-void JIT::emitSlow_op_set_private_brand(const Instruction*, Vector<SlowCaseEntry>::iterator&)
+void JIT::emitSlow_op_set_private_brand(const Instruction* currentInstruction, Vector<SlowCaseEntry>::iterator& iter)
 {
-    // OOPS: Implement this
-    CRASH();
+    GPRReg baseGPR = regT0;
+    GPRReg brandGPR = regT1;
+
+    linkAllSlowCases(iter);
+
+    callOperation(operationSetPrivateBrandGeneric, TrustedImmPtr(m_codeBlock->globalObject()), baseGPR, brandGPR);
 }
 
-void JIT::emit_op_check_private_brand(const Instruction*)
+void JIT::emit_op_check_private_brand(const Instruction* currentInstruction)
 {
     // OOPS: Implement this
-    CRASH();
+    auto bytecode = currentInstruction->as<OpCheckPrivateBrand>();
+    VirtualRegister base = bytecode.m_base;
+    VirtualRegister brand = bytecode.m_brand;
+    GPRReg baseGPR = regT0;
+    GPRReg brandGPR = regT1;
+    emitGetVirtualRegister(base, baseGPR);
+    emitGetVirtualRegister(brand, brandGPR);
+
+    addSlowCase(jump());
 }
 
-void JIT::emitSlow_op_check_private_brand(const Instruction*, Vector<SlowCaseEntry>::iterator&)
+void JIT::emitSlow_op_check_private_brand(const Instruction* currentInstruction, Vector<SlowCaseEntry>::iterator& iter)
 {
     // OOPS: Implement this
-    CRASH();
+    GPRReg baseGPR = regT0;
+    GPRReg brandGPR = regT1;
+
+    linkAllSlowCases(iter);
+
+    callOperation(operationCheckPrivateBrandGeneric, TrustedImmPtr(m_codeBlock->globalObject()), baseGPR, brandGPR);
 }
 
 void JIT::emit_op_put_by_val_direct(const Instruction* currentInstruction)

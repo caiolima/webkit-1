@@ -1827,7 +1827,7 @@ llintOpWithMetadata(op_set_private_brand, OpSetPrivateBrand, macro (size, get, d
     loadp OpSetPrivateBrand::Metadata::m_brand[t5], t3
     bqneq t3, t1, .opSetPrivateBrandSlow
 
-    loadi OpPutPrivateName::Metadata::m_newStructureID[t5], t1
+    loadi OpSetPrivateBrand::Metadata::m_newStructureID[t5], t1
     storei t1, JSCell::m_structureID[t0]
     dispatch()
 
@@ -1837,6 +1837,16 @@ llintOpWithMetadata(op_set_private_brand, OpSetPrivateBrand, macro (size, get, d
 end)
 
 llintOpWithMetadata(op_check_private_brand, OpCheckPrivateBrand, macro (size, get, dispatch, metadata, return)
+    get(m_base, t3)
+    loadConstantOrVariableCell(size, t3, t0, .opCheckPrivateBrandSlow)
+    get(m_brand, t3)
+    loadConstantOrVariableCell(size, t3, t1, .opCheckPrivateBrandSlow)
+    metadata(t5, t2)
+    loadi OpCheckPrivateBrand::Metadata::m_structureID[t5], t2
+    bineq t2, JSCell::m_structureID[t0], .opCheckPrivateBrandSlow
+    dispatch()
+
+.opCheckPrivateBrandSlow:
     callSlowPath(_llint_slow_path_check_private_brand)
     dispatch()
 end)

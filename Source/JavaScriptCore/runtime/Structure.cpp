@@ -1508,7 +1508,7 @@ BrandedStructure::BrandedStructure(VM& vm, Structure* previous, Symbol* brandSym
 BrandedStructure::BrandedStructure(VM& vm, BrandedStructure* previous, DeferredStructureTransitionWatchpointFire* deferred)
     : Structure(vm, previous, deferred)
     , m_brand(vm, this, previous->brand())
-    , m_parentBrand(vm, this, previous->parentBrand())
+    , m_parentBrand(vm, this, previous->parentBrand(), WriteBarrier<BrandedStructure>::MayBeNull)
 {
     this->setIsBrandedStructure(true);
 }
@@ -1550,18 +1550,18 @@ Structure* Structure::setBrandTransition(VM& vm, Structure* structure, Symbol* b
         }
     }
 
-    // FIXME: We should difinitely avoid keep copying PropertyTable on dictionaries
-    // just to have parent brand pointer.
+    DeferGC deferGC(vm.heap);
 
     Structure* transition = BrandedStructure::create(vm, structure, brand, deferred);
+    transition->setTransitionKind(TransitionKind::SetBrand);
 
     transition->m_cachedPrototypeChain.setMayBeNull(vm, transition, structure->m_cachedPrototypeChain.get());
     transition->m_blob.setIndexingModeIncludingHistory(structure->indexingModeIncludingHistory());
     transition->m_transitionPropertyName = &brand->uid();
     transition->setTransitionPropertyAttributes(0);
-    transition->setTransitionKind(TransitionKind::SetBrand);
     transition->setPropertyTable(vm, structure->takePropertyTableOrCloneIfPinned(vm));
     transition->setMaxOffset(vm, structure->maxOffset());
+    checkOffset(transition->maxOffset(), transition->inlineCapacity());
 
     if (structure->isDictionary()) {
         PropertyTable* table = transition->ensurePropertyTable(vm);

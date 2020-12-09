@@ -1318,7 +1318,6 @@ LLINT_SLOW_PATH_DECL(slow_path_set_private_brand)
     baseObject->setPrivateBrand(globalObject, brand);
     LLINT_CHECK_EXCEPTION();
 
-
     if (!LLINT_ALWAYS_ACCESS_SLOW && !oldStructure->isDictionary()) {
         GCSafeConcurrentJSLocker locker(codeBlock->m_lock, vm.heap);
         Structure* newStructure = baseObject->structure(vm);
@@ -1347,6 +1346,7 @@ LLINT_SLOW_PATH_DECL(slow_path_check_private_brand)
     LLINT_BEGIN();
 
     auto bytecode = pc->as<OpCheckPrivateBrand>();
+    auto& metadata = bytecode.metadata(codeBlock);
     JSValue baseValue = getOperand(callFrame, bytecode.m_base);
     JSValue brand = getOperand(callFrame, bytecode.m_brand);
 
@@ -1357,6 +1357,17 @@ LLINT_SLOW_PATH_DECL(slow_path_check_private_brand)
 
     baseObject->checkPrivateBrand(globalObject, brand);
     LLINT_CHECK_EXCEPTION();
+
+    // OOPS: Is there really a case where we don't want to cache here?
+    // Since a brand can never be deleted, it's safe to rely on StructureID
+    // even if it's an uncacheable dictionary.
+    Structure* structure = baseObject->structure(vm);
+    if (!LLINT_ALWAYS_ACCESS_SLOW) {
+        GCSafeConcurrentJSLocker locker(codeBlock->m_lock, vm.heap);
+
+        metadata.m_structureID = structure->id();
+        vm.heap.writeBarrier(codeBlock);
+    }
 
     LLINT_END();    
 }

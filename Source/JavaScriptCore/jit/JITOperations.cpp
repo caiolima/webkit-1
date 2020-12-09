@@ -1094,6 +1094,43 @@ JSC_DEFINE_JIT_OPERATION(operationDirectPutByValGeneric, void, (JSGlobalObject* 
     directPutByVal(globalObject, asObject(baseValue), subscript, value, byValInfo, ecmaMode);
 }
 
+JSC_DEFINE_JIT_OPERATION(operationSetPrivateBrandGeneric, void, (JSGlobalObject* globalObject, EncodedJSValue encodedBaseValue, EncodedJSValue encodedBrand))
+{
+    VM& vm = globalObject->vm();
+    CallFrame* callFrame = DECLARE_CALL_FRAME(vm);
+    JITOperationPrologueCallFrameTracer tracer(vm, callFrame);
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
+    JSValue baseValue = JSValue::decode(encodedBaseValue);
+    JSValue brand = JSValue::decode(encodedBrand);
+
+    ASSERT(baseValue.isObject());
+    ASSERT(brand.isSymbol());
+
+    JSObject* baseObject = asObject(baseValue);
+    baseObject->setPrivateBrand(globalObject, brand);
+    RETURN_IF_EXCEPTION(scope, void());
+}
+
+JSC_DEFINE_JIT_OPERATION(operationCheckPrivateBrandGeneric, void, (JSGlobalObject* globalObject, EncodedJSValue encodedBaseValue, EncodedJSValue encodedBrand))
+{
+    VM& vm = globalObject->vm();
+    CallFrame* callFrame = DECLARE_CALL_FRAME(vm);
+    JITOperationPrologueCallFrameTracer tracer(vm, callFrame);
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
+    JSValue baseValue = JSValue::decode(encodedBaseValue);
+    JSValue brand = JSValue::decode(encodedBrand);
+
+    JSObject* baseObject = baseValue.toObject(globalObject);
+    RETURN_IF_EXCEPTION(scope, void());
+
+    ASSERT(brand.isSymbol());
+
+    baseObject->checkPrivateBrand(globalObject, brand);
+    RETURN_IF_EXCEPTION(scope, void());
+}
+
 JSC_DEFINE_JIT_OPERATION(operationPutPrivateNameOptimize, void, (JSGlobalObject* globalObject, EncodedJSValue encodedBaseValue, EncodedJSValue encodedSubscript, EncodedJSValue encodedValue, ByValInfo* byValInfo, PrivateFieldPutKind putKind))
 {
     VM& vm = globalObject->vm();

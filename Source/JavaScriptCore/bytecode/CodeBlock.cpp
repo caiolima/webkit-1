@@ -1356,6 +1356,15 @@ void CodeBlock::finalizeLLIntInlineCaches()
             metadata.m_brand.clear();
         });
 
+        m_metadata->forEach<OpCheckPrivateBrand>([&] (auto& metadata) {
+            StructureID structureID = metadata.m_structureID;
+            if (!structureID || vm.heap.isMarked(vm.heap.structureIDTable().get(structureID)))
+                return;
+
+            dataLogLnIf(Options::verboseOSR(), "Clearing LLInt set_private_brand transition.");
+            metadata.m_structureID = 0;
+        });
+
         m_metadata->forEach<OpToThis>([&] (auto& metadata) {
             if (!metadata.m_cachedStructureID || vm.heap.isMarked(vm.heap.structureIDTable().get(metadata.m_cachedStructureID)))
                 return;
