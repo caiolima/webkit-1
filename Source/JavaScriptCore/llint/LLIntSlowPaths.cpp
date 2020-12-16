@@ -830,7 +830,8 @@ static JSValue performLLIntGetByID(const Instruction* pc, CodeBlock* codeBlock, 
     JSValue result = baseValue.get(globalObject, ident, slot);
     RETURN_IF_EXCEPTION(throwScope, { });
 
-    WTF::dataLogLnIf(Options::verbosePIC(), "Cache miss on ", *codeBlock, " ", bytecodeIndex);
+    if (metadata.mode == GetByIdMode::ProtoLoad)
+        WTF::dataLogLnIf(Options::verbosePIC(), "Cache miss on proto access ", *codeBlock, " ", bytecodeIndex);
 
     if (!LLINT_ALWAYS_ACCESS_SLOW
         && baseValue.isCell()
@@ -869,6 +870,7 @@ static JSValue performLLIntGetByID(const Instruction* pc, CodeBlock* codeBlock, 
         JSCell* baseCell = baseValue.asCell();
         Structure* structure = baseCell->structure(vm);
         if (slot.isValue() && slot.slotBase() == baseValue) {
+            WTF::dataLogLnIf(Options::verbosePIC(), "Trying to cache self access on ", *codeBlock, " ", bytecodeIndex);
             ConcurrentJSLocker locker(codeBlock->m_lock);
             // Start out by clearing out the old cache.
             metadata.clearToDefaultModeWithoutCache();
@@ -884,6 +886,7 @@ static JSValue performLLIntGetByID(const Instruction* pc, CodeBlock* codeBlock, 
                 vm.heap.writeBarrier(codeBlock);
             }
         } else if (slot.isValue()) {
+            WTF::dataLogLnIf(Options::verbosePIC(), "Trying to cache proto load on ", *codeBlock, " ", bytecodeIndex);
             setupGetByIdPrototypeCache(globalObject, vm, codeBlock, pc, metadata, baseCell, slot, ident);
         }
     } else if (!LLINT_ALWAYS_ACCESS_SLOW && isJSArray(baseValue) && ident == vm.propertyNames->length) {
@@ -2576,6 +2579,16 @@ extern "C" void llint_dump_value(EncodedJSValue value)
 extern "C" NO_RETURN_DUE_TO_CRASH void llint_crash()
 {
     CRASH();
+}
+
+extern "C" void pic_probe(CallFrame* callFrame, const Instruction* pc, int hitCount)
+{
+    CodeBlock* codeBlock = callFrame->codeBlock();
+    auto bytecodeIndex = callFrame->bytecodeIndex();
+    if (hitCount)
+        dataLogLn("Proto load hit on ", *codeBlock, " ", bytecodeIndex, " count: ", hitCount);
+    else
+        dataLogLn("Proto load miss on ", *codeBlock, " ", bytecodeIndex, " count: ", hitCount);
 }
 
 } } // namespace JSC::LLInt

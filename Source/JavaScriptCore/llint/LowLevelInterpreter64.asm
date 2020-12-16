@@ -1504,11 +1504,20 @@ macro performGetByIDHelper(opcodeStruct, modeMetadataName, valueProfileName, slo
 
 .opGetByIdProtoLoad:
     bbneq t1, constexpr GetByIdMode::ProtoLoad, .opGetByIdArrayLength
+#    move 1, t0
     loadi JSCell::m_structureID[t3], t1
     loadp %opcodeStruct%::Metadata::%modeMetadataName%.protoLoadMode.cases[t2], t3
 .casesLoop:
     loadi ProtoLoadEntry::structureID[t3], t5
     bineq t5, t1, .maybeNext
+#    probe(macro()
+#        prepareStateForCCall()
+#        move t0, a2
+#        move cfr, a0
+#        move PC, a1
+#        call _pic_probe
+#        restoreStateAfterCCall()
+#    end)
     loadis ProtoLoadEntry::cachedOffset[t3], t1
     loadp ProtoLoadEntry::cachedSlot[t3], t3
     loadPropertyAtVariableOffset(t1, t3, t0)
@@ -1517,7 +1526,18 @@ macro performGetByIDHelper(opcodeStruct, modeMetadataName, valueProfileName, slo
 .maybeNext:
     btiz t5, slowLabel
     addq sizeof ProtoLoadEntry, t3
+#    addq 1, t0
     jmp .casesLoop
+# .missIC:
+#     probe(macro()
+#         prepareStateForCCall()
+#         move t0, a2
+#         move cfr, a0
+#         move PC, a1
+#         call _pic_probe
+#         restoreStateAfterCCall()
+#     end)
+#     jmp slowLabel
 
 .opGetByIdArrayLength:
     bbneq t1, constexpr GetByIdMode::ArrayLength, .opGetByIdUnset

@@ -152,5 +152,6 @@ extern "C" SlowPathReturnType llint_stack_check_at_vm_entry(VM*, Register*) WTF_
 #endif
 extern "C" SlowPathReturnType llint_check_vm_entry_permission(VM*, ProtoCallFrame*) WTF_INTERNAL;
 extern "C" NO_RETURN_DUE_TO_CRASH void llint_crash() WTF_INTERNAL;
+extern "C" void pic_probe(CallFrame*, const Instruction*, int);
 
 } } // namespace JSC::LLInt
