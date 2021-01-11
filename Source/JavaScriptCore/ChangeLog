@@ -39,11 +39,11 @@
             const @privateBrand = @createPrivateSymbol();
             const #m = function () { return 3; }
             C.prototype.method = function() {
-                @get_private_name(this, @privateBrand);
+                @check_private_brand(this, @privateBrand);
                 return #m.call(this);
             }
             C = function() {
-                @put_private_name(this, @privateBrand, @privateBrand);
+                @set_private_brand(this, @privateBrand, @privateBrand);
             }
         }
 
@@ -51,22 +51,7 @@
         console.log(c.method()); // prints 3
         ```
 
-        The brand check is performed by `get_private_name`, where we re-use
-        the mechanism introduced by private class fields. We can see the
-        private brand as a special private field installed during
-        `[[Construct]]` operation. Since the private brand is a private field,
-        we throw `TypeError` when the lookup fail.
-
-        To properly store the private brand of a class on all objects,
-        including Proxies, we use `put_private_name`. This instruction puts
-        value on object's properties without executing [[Put]] semantics.
-        With this design, we avoid allocating a field for every instance
-        of a class, since private methods are stored on class
-        lexical scope. Every object will have to allocate its private
-        brand list. This design inserts no overhead on objects and classes
-        without private methods/accessor.
-
-        Resolving correct brand check:
+        Resolving correct brand to check:
 
         In the case of shadowing or nested scope, we need to emit brand
         checks to the right private brand. See code below:
@@ -93,12 +78,51 @@
         ```
         resolve_scope loc10, "#m"
         get_from_scope loc11, loc10, "@privateBrand"
-        get_private_name loc12, this, loc11
+        check_private_brand this, loc11
         get_from_scope loc11, loc10, "#m"
         // setup call frame
         call loc11, ...
         // ...
         ```
+
+        Brand check mechanism:
+
+        We are introducing in this patch 2 new bytecodes to allow  brand check
+        of objects: `op_set_brand` and `op_check_brand`.
+        `op_set_brand` sets a new brand in an object, so we can perform the brand
+        check later when accessing private methods. This operations throws when
+        trying to add the same brand twice in an Object.
+        `op_check_brand` checks if the given object contains the brand we are
+        looking for. It traverses the brand chain to verify if the brand is
+        present, and throws `TypeError` otherwise.
+
+        We are also introducing a subclass for Structure called BrandedStructure.
+        It is used to store brands and to allow brand check mechanism. BrandedStructure
+        stores a brand and a parent pointer to another BrandedStructure that allow
+        us traverse the brand chain. With `BrandedStructure`, we can then
+        infer that a given object has the brand we are looking for just
+        checking its structureId. This is very good optimization, since we can
+        reduce most of brand checks to structure checks.
+
+        We created a new kind of transition called `SetBrand` that happens when
+        `op_set_brand` is executed. This allow us to cache such kind of
+        trasitions on trasition table using the key `<brand->uid, 0,
+        TransitionKind::SetBrand>`. During this transition, we take previous
+        structure and apply one of the following rules:
+
+            1. If it’s a BrandedStructure, we then set it to `m_parentBrand`,
+            to allow proper brand chain check.
+        
+            2. If it’s not a BrandedStructure, we set `m_parentBrand` to nullptr,
+            meaning that this is the first brand being added to the object
+            with this structure.
+        
+        For now, we are using the flag `isBrandedStructure` to identify that a
+        given Structure is a BrandedStructure. This is done to avoid changes
+        on places where we are checking for `vm.structureStructure()`.
+        However, if we ever need space on Structure, this flag is a good
+        candidate to be deleted and we can move to a solution that uses
+        `vm.brandedStructureStructure()`;
 
         * builtins/BuiltinExecutables.cpp:
         (JSC::BuiltinExecutables::createDefaultConstructor):

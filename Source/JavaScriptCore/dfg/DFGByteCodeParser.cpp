@@ -4734,9 +4734,8 @@ void ByteCodeParser::handleGetPrivateNameById(
     ASSERT(!getByStatus.isCustom());
     ASSERT(!getByStatus.makesCalls());
     if (!getByStatus.isSimple() || !getByStatus.numVariants() || !Options::useAccessInlining()) {
-        Node* node = addToGraph(GetPrivateNameById, OpInfo(identifier), OpInfo(prediction), base, nullptr);
-        if (destination.isValid())
-            set(destination, node);
+        set(destination,
+            addToGraph(GetPrivateNameById, OpInfo(identifier), OpInfo(prediction), base, nullptr));
         return;
     }
 
@@ -4744,9 +4743,8 @@ void ByteCodeParser::handleGetPrivateNameById(
         if (!m_graph.m_plan.isFTL()
             || !Options::usePolymorphicAccessInlining()
             || getByStatus.numVariants() > Options::maxPolymorphicAccessInliningListSize()) {
-            Node* node = addToGraph(GetPrivateNameById, OpInfo(identifier), OpInfo(prediction), base, nullptr);
-            if (destination.isValid())
-                set(destination, node);
+            set(destination,
+                addToGraph(GetPrivateNameById, OpInfo(identifier), OpInfo(prediction), base, nullptr));
             return;
         }
 
@@ -4769,9 +4767,8 @@ void ByteCodeParser::handleGetPrivateNameById(
         MultiGetByOffsetData* data = m_graph.m_multiGetByOffsetData.add();
         data->cases = cases;
         data->identifierNumber = identifierNumber;
-        Node* node = addToGraph(MultiGetByOffset, OpInfo(data), OpInfo(prediction), base);
-        if (destination.isValid())
-            set(destination, node);
+        set(destination,
+            addToGraph(MultiGetByOffset, OpInfo(data), OpInfo(prediction), base));
         return;
     }
 
@@ -4785,9 +4782,8 @@ void ByteCodeParser::handleGetPrivateNameById(
 
     Node* loadedValue = load(prediction, base, identifierNumber, variant);
     if (!loadedValue) {
-        Node* node = addToGraph(GetPrivateNameById, OpInfo(identifier), OpInfo(prediction), base, nullptr);
-        if (destination.isValid())
-            set(destination, node);
+        set(destination,
+            addToGraph(GetPrivateNameById, OpInfo(identifier), OpInfo(prediction), base, nullptr));
         return;
     }
 
@@ -4795,7 +4791,7 @@ void ByteCodeParser::handleGetPrivateNameById(
         m_graph.compilation()->noticeInlinedGetById();
 
     ASSERT(!variant.callLinkStatus());
-    if (variant.intrinsic() == NoIntrinsic && destination.isValid())
+    if (variant.intrinsic() == NoIntrinsic)
         set(destination, loadedValue);
 }
 
@@ -6453,16 +6449,12 @@ void ByteCodeParser::parseBlock(unsigned limit)
                 }
             }
 
-            // Since we don't use the return of private brand check, we don't need to set result here.
-            // This helps us DCE GetByOffset for this case.
-            VirtualRegister destination = m_graph.m_privateBrandAccess.contains(property) ? VirtualRegister() : bytecode.m_dst;
             if (compileSingleIdentifier)
-                handleGetPrivateNameById(destination, prediction, base, identifier, identifierNumber, getByStatus);
+                handleGetPrivateNameById(bytecode.m_dst, prediction, base, identifier, identifierNumber, getByStatus);
             else {
                 Node* node = addToGraph(GetPrivateName, OpInfo(), OpInfo(prediction), base, property);
                 m_exitOK = false;
-                if (destination.isValid())
-                    set(destination, node);
+                set(bytecode.m_dst, node);
             }
             NEXT_OPCODE(op_get_private_name);
         }
@@ -7738,21 +7730,12 @@ void ByteCodeParser::parseBlock(unsigned limit)
                 // prediction, we'd otherwise think that it has to exit. Then when it did execute, we
                 // would recompile. But if we can fold it here, we avoid the exit.
                 if (JSValue value = m_graph.tryGetConstantClosureVar(scopeNode, ScopeOffset(operand))) {
-                    Node* node = weakJSConstant(value);
-                    set(bytecode.m_dst, node);
-
-                    if (uid && uid == m_graph.m_vm.propertyNames->builtinNames().privateBrandPrivateName().impl())
-                        m_graph.m_privateBrandAccess.add(node);
-
+                    set(bytecode.m_dst, weakJSConstant(value));
                     break;
                 }
                 SpeculatedType prediction = getPrediction();
-                Node* node = addToGraph(GetClosureVar, OpInfo(operand), OpInfo(prediction), scopeNode);
-                set(bytecode.m_dst, node);
-
-                if (uid && uid == m_graph.m_vm.propertyNames->builtinNames().privateBrandPrivateName().impl())
-                    m_graph.m_privateBrandAccess.add(node);
-
+                set(bytecode.m_dst,
+                    addToGraph(GetClosureVar, OpInfo(operand), OpInfo(prediction), scopeNode));
                 break;
             }
             case UnresolvedProperty:
