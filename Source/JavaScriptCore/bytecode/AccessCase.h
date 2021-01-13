@@ -108,6 +108,7 @@ public:
         InstanceOfHit,
         InstanceOfMiss,
         InstanceOfGeneric,
+        CheckPrivateBrand,
         IndexedInt32Load,
         IndexedDoubleLoad,
         IndexedContiguousLoad,
@@ -153,6 +154,8 @@ public:
 
     static std::unique_ptr<AccessCase> createDelete(VM&, JSCell* owner, CacheableIdentifier, PropertyOffset, Structure* oldStructure,
         Structure* newStructure);
+
+    static std::unique_ptr<AccessCase> createCheckPrivateBrand(VM&, JSCell* owner, CacheableIdentifier, Structure*);
     
     static std::unique_ptr<AccessCase> fromStructureStubInfo(VM&, JSCell* owner, CacheableIdentifier, StructureStubInfo&);
 

@@ -133,6 +133,11 @@ std::unique_ptr<AccessCase> AccessCase::createDelete(
     return std::unique_ptr<AccessCase>(new AccessCase(vm, owner, Delete, identifier, offset, newStructure, { }, { }));
 }
 
+std::unique_ptr<AccessCase> AccessCase::createCheckPrivateBrand(VM& vm, JSCell* owner, CacheableIdentifier identifier, Structure* structure)
+{
+    return std::unique_ptr<AccessCase>(new AccessCase(vm, owner, CheckPrivateBrand, identifier, invalidOffset, structure, { }, { }));
+}
+
 AccessCase::~AccessCase()
 {
 }
@@ -288,6 +293,7 @@ bool AccessCase::requiresIdentifierNameMatch() const
     case DirectArgumentsLength:
     case ScopedArgumentsLength:
     case ModuleNamespaceLoad:
+    case CheckPrivateBrand:
         return true;
     case InstanceOfHit:
     case InstanceOfMiss:
@@ -341,6 +347,7 @@ bool AccessCase::requiresInt32PropertyCheck() const
     case InstanceOfHit:
     case InstanceOfMiss:
     case InstanceOfGeneric:
+    case CheckPrivateBrand:
         return false;
     case IndexedInt32Load:
     case IndexedDoubleLoad:
@@ -383,6 +390,7 @@ bool AccessCase::needsScratchFPR() const
     case IntrinsicGetter:
     case InHit:
     case InMiss:
+    case CheckPrivateBrand:
     case ArrayLength:
     case StringLength:
     case DirectArgumentsLength:
@@ -470,6 +478,7 @@ void AccessCase::forEachDependentCell(VM& vm, const Functor& functor) const
     case GetGetter:
     case InHit:
     case InMiss:
+    case CheckPrivateBrand:
     case ArrayLength:
     case StringLength:
     case DirectArgumentsLength:
@@ -519,6 +528,7 @@ bool AccessCase::doesCalls(VM& vm, Vector<JSCell*>* cellsToMarkIfDoesCalls) cons
     case IntrinsicGetter:
     case InHit:
     case InMiss:
+    case CheckPrivateBrand:
     case ArrayLength:
     case StringLength:
     case DirectArgumentsLength:
@@ -670,6 +680,7 @@ bool AccessCase::canReplace(const AccessCase& other) const
     case CustomAccessorSetter:
     case InHit:
     case InMiss:
+    case CheckPrivateBrand:
         if (other.type() != type())
             return false;
 
@@ -1331,6 +1342,12 @@ void AccessCase::generateWithGuard(
         } else
             state.failAndIgnore.append(failAndIgnore);
         return;
+    }
+
+    case CheckPrivateBrand: {
+        emitDefaultGuard();
+        state.succeed();
+        return;                        
     }
         
     default:
@@ -2107,6 +2124,7 @@ void AccessCase::generateImpl(AccessGenerationState& state)
     case IndexedTypedArrayFloat32Load:
     case IndexedTypedArrayFloat64Load:
     case IndexedStringLoad:
+    case CheckPrivateBrand:
         // These need to be handled by generateWithGuard(), since the guard is part of the
         // algorithm. We can be sure that nobody will call generate() directly for these since they
         // are not guarded by structure checks.

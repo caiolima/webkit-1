@@ -989,6 +989,7 @@ namespace JSC {
         Vector<JITDelByIdGenerator> m_delByIds;
         Vector<JITDelByValGenerator> m_delByVals;
         Vector<JITInstanceOfGenerator> m_instanceOfs;
+        Vector<JITCheckPrivateBrandGenerator> m_checkPrivateBrands;
         Vector<ByValCompilationInfo> m_byValCompilationInfo;
         Vector<CallCompilationInfo> m_callCompilationInfo;
         Vector<JumpTable> m_jmpTable;
@@ -1012,6 +1013,7 @@ namespace JSC {
         unsigned m_delByValIndex { UINT_MAX };
         unsigned m_delByIdIndex { UINT_MAX };
         unsigned m_instanceOfIndex { UINT_MAX };
+        unsigned m_checkPrivateBrandIndex { UINT_MAX };
         unsigned m_byValInstructionIndex { UINT_MAX };
         unsigned m_callLinkInfoIndex { UINT_MAX };
         unsigned m_bytecodeCountHavingSlowCase { 0 };

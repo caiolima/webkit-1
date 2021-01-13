@@ -168,27 +168,32 @@ void JIT::emitSlow_op_set_private_brand(const Instruction* currentInstruction, V
 
 void JIT::emit_op_check_private_brand(const Instruction* currentInstruction)
 {
-    // OOPS: Implement this
     auto bytecode = currentInstruction->as<OpCheckPrivateBrand>();
     VirtualRegister base = bytecode.m_base;
     VirtualRegister brand = bytecode.m_brand;
-    GPRReg baseGPR = regT0;
-    GPRReg brandGPR = regT1;
-    emitGetVirtualRegister(base, baseGPR);
-    emitGetVirtualRegister(brand, brandGPR);
 
-    addSlowCase(jump());
+    emitGetVirtualRegister(base, regT0);
+    emitGetVirtualRegister(brand, regT1);
+
+    emitJumpSlowCaseIfNotJSCell(regT0, base);
+
+    JITCheckPrivateBrandGenerator gen(
+        m_codeBlock, CodeOrigin(m_bytecodeIndex), CallSiteIndex(m_bytecodeIndex), AccessType::CheckPrivateBrand, RegisterSet::stubUnavailableRegisters(),
+        JSValueRegs(regT0), JSValueRegs(regT1));
+    gen.generateFastPath(*this);
+    addSlowCase(gen.slowPathJump());
+    m_checkPrivateBrands.append(gen);
 }
 
 void JIT::emitSlow_op_check_private_brand(const Instruction* currentInstruction, Vector<SlowCaseEntry>::iterator& iter)
 {
-    // OOPS: Implement this
-    GPRReg baseGPR = regT0;
-    GPRReg brandGPR = regT1;
-
     linkAllSlowCases(iter);
 
-    callOperation(operationCheckPrivateBrandGeneric, TrustedImmPtr(m_codeBlock->globalObject()), baseGPR, brandGPR);
+    JITCheckPrivateBrandGenerator& gen = m_checkPrivateBrands[m_checkPrivateBrandIndex];
+    ++m_checkPrivateBrandIndex;
+    Label coldPathBegin = label();
+    Call call = callOperation(operationCheckPrivateBrandOptimize, TrustedImmPtr(m_codeBlock->globalObject()), gen.stubInfo(), regT0, regT1);
+    gen.reportSlowPathCall(coldPathBegin, call);
 }
 
 void JIT::emit_op_put_by_val_direct(const Instruction* currentInstruction)
