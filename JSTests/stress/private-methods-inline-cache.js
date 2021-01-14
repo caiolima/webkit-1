@@ -15,8 +15,8 @@ class C {
     }
 }
 
-let c = new C();
 for (let i = 0; i < 10000; i++) {
+    let c = new C();
     assert(c.access(), 'foo');
 }
 

@@ -1094,7 +1094,7 @@ JSC_DEFINE_JIT_OPERATION(operationDirectPutByValGeneric, void, (JSGlobalObject* 
     directPutByVal(globalObject, asObject(baseValue), subscript, value, byValInfo, ecmaMode);
 }
 
-JSC_DEFINE_JIT_OPERATION(operationSetPrivateBrandGeneric, void, (JSGlobalObject* globalObject, EncodedJSValue encodedBaseValue, EncodedJSValue encodedBrand))
+JSC_DEFINE_JIT_OPERATION(operationSetPrivateBrandOptimize, void, (JSGlobalObject* globalObject, StructureStubInfo* stubInfo, EncodedJSValue encodedBaseValue, EncodedJSValue encodedBrand))
 {
     VM& vm = globalObject->vm();
     CallFrame* callFrame = DECLARE_CALL_FRAME(vm);
@@ -1103,6 +1103,35 @@ JSC_DEFINE_JIT_OPERATION(operationSetPrivateBrandGeneric, void, (JSGlobalObject*
 
     JSValue baseValue = JSValue::decode(encodedBaseValue);
     JSValue brand = JSValue::decode(encodedBrand);
+
+    ASSERT(baseValue.isObject());
+    ASSERT(brand.isSymbol());
+
+    JSObject* baseObject = asObject(baseValue);
+    Structure* oldStructure = baseObject->structure(vm);
+    baseObject->setPrivateBrand(globalObject, brand);
+    RETURN_IF_EXCEPTION(scope, void());
+
+    CodeBlock* codeBlock = callFrame->codeBlock();
+    if (CacheableIdentifier::isCacheableIdentifierCell(brand)) {
+        CacheableIdentifier identifier = CacheableIdentifier::createFromCell(brand.asCell());
+        if (stubInfo->considerCachingBy(vm, codeBlock, baseObject->structure(vm), identifier))
+            repatchSetPrivateBrand(globalObject, codeBlock, baseObject, oldStructure, identifier, *stubInfo);
+    }
+
+}
+
+JSC_DEFINE_JIT_OPERATION(operationSetPrivateBrandGeneric, void, (JSGlobalObject* globalObject, StructureStubInfo* stubInfo, EncodedJSValue encodedBaseValue, EncodedJSValue encodedBrand))
+{
+    VM& vm = globalObject->vm();
+    CallFrame* callFrame = DECLARE_CALL_FRAME(vm);
+    JITOperationPrologueCallFrameTracer tracer(vm, callFrame);
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
+    JSValue baseValue = JSValue::decode(encodedBaseValue);
+    JSValue brand = JSValue::decode(encodedBrand);
+
+    stubInfo->tookSlowPath = true;
 
     ASSERT(baseValue.isObject());
     ASSERT(brand.isSymbol());
@@ -1134,7 +1163,7 @@ JSC_DEFINE_JIT_OPERATION(operationCheckPrivateBrandOptimize, void, (JSGlobalObje
     if (CacheableIdentifier::isCacheableIdentifierCell(brand)) {
         CacheableIdentifier identifier = CacheableIdentifier::createFromCell(brand.asCell());
         if (stubInfo->considerCachingBy(vm, codeBlock, baseObject->structure(vm), identifier))
-            repatchCheckPrivateBrandByID(globalObject, codeBlock, baseObject, identifier, *stubInfo);
+            repatchCheckPrivateBrand(globalObject, codeBlock, baseObject, identifier, *stubInfo);
     }
 }
 

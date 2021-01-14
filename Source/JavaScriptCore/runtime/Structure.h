@@ -207,6 +207,7 @@ public:
     static Structure* preventExtensionsTransition(VM&, Structure*);
     static Structure* nonPropertyTransition(VM&, Structure*, TransitionKind);
     JS_EXPORT_PRIVATE static Structure* nonPropertyTransitionSlow(VM&, Structure*, TransitionKind);
+    static Structure* setBrandTransitionFromExistingStructureConcurrently(Structure*, UniquedStringImpl*);
     static Structure* setBrandTransition(VM&, Structure*, Symbol* brand, DeferredStructureTransitionWatchpointFire* = nullptr);
 
     JS_EXPORT_PRIVATE bool isSealed(VM&);
@@ -735,6 +736,7 @@ private:
     
     static Structure* addPropertyTransitionToExistingStructureImpl(Structure*, UniquedStringImpl* uid, unsigned attributes, PropertyOffset&);
     static Structure* removePropertyTransitionFromExistingStructureImpl(Structure*, PropertyName, unsigned attributes, PropertyOffset&);
+    static Structure* setBrandTransitionFromExistingStructureImpl(Structure*, UniquedStringImpl*);
 
     // This will return the structure that has a usable property table, that property table,
     // and the list of structures that we visited before we got to it. If it returns a

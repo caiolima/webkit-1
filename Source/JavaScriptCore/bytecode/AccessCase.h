@@ -109,6 +109,7 @@ public:
         InstanceOfMiss,
         InstanceOfGeneric,
         CheckPrivateBrand,
+        SetPrivateBrand,
         IndexedInt32Load,
         IndexedDoubleLoad,
         IndexedContiguousLoad,
@@ -156,6 +157,7 @@ public:
         Structure* newStructure);
 
     static std::unique_ptr<AccessCase> createCheckPrivateBrand(VM&, JSCell* owner, CacheableIdentifier, Structure*);
+    static std::unique_ptr<AccessCase> createSetPrivateBrand(VM&, JSCell* owner, CacheableIdentifier, Structure* oldStructure, Structure* newStructure);
     
     static std::unique_ptr<AccessCase> fromStructureStubInfo(VM&, JSCell* owner, CacheableIdentifier, StructureStubInfo&);
 
@@ -165,7 +167,7 @@ public:
 
     Structure* structure() const
     {
-        if (m_type == Transition || m_type == Delete)
+        if (m_type == Transition || m_type == Delete || m_type == SetPrivateBrand)
             return m_structure->previousID();
         return m_structure.get();
     }
@@ -173,7 +175,7 @@ public:
 
     Structure* newStructure() const
     {
-        ASSERT(m_type == Transition || m_type == Delete);
+        ASSERT(m_type == Transition || m_type == Delete || m_type == SetPrivateBrand);
         return m_structure.get();
     }
 

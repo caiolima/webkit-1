@@ -192,8 +192,9 @@ JSC_DECLARE_JIT_OPERATION(operationPutByIdDefinePrivateFieldStrictOptimize, void
 JSC_DECLARE_JIT_OPERATION(operationPutByIdSetPrivateFieldStrict, void, (JSGlobalObject*, StructureStubInfo*, EncodedJSValue encodedValue, EncodedJSValue encodedBase, uintptr_t));
 JSC_DECLARE_JIT_OPERATION(operationPutByIdSetPrivateFieldStrictOptimize, void, (JSGlobalObject*, StructureStubInfo*, EncodedJSValue encodedValue, EncodedJSValue encodedBase, uintptr_t));
 
+JSC_DECLARE_JIT_OPERATION(operationSetPrivateBrandOptimize, void, (JSGlobalObject*, StructureStubInfo*, EncodedJSValue, EncodedJSValue));
 JSC_DECLARE_JIT_OPERATION(operationCheckPrivateBrandOptimize, void, (JSGlobalObject*, StructureStubInfo*, EncodedJSValue, EncodedJSValue));
-JSC_DECLARE_JIT_OPERATION(operationSetPrivateBrandGeneric, void, (JSGlobalObject*, EncodedJSValue, EncodedJSValue));
+JSC_DECLARE_JIT_OPERATION(operationSetPrivateBrandGeneric, void, (JSGlobalObject*, StructureStubInfo*, EncodedJSValue, EncodedJSValue));
 JSC_DECLARE_JIT_OPERATION(operationCheckPrivateBrandGeneric, void, (JSGlobalObject*, StructureStubInfo*, EncodedJSValue, EncodedJSValue));
 
 JSC_DECLARE_JIT_OPERATION(operationPutPrivateNameOptimize, void, (JSGlobalObject*, EncodedJSValue, EncodedJSValue, EncodedJSValue, ByValInfo*, PrivateFieldPutKind));

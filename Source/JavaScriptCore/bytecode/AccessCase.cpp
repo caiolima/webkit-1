@@ -138,6 +138,13 @@ std::unique_ptr<AccessCase> AccessCase::createCheckPrivateBrand(VM& vm, JSCell* 
     return std::unique_ptr<AccessCase>(new AccessCase(vm, owner, CheckPrivateBrand, identifier, invalidOffset, structure, { }, { }));
 }
 
+std::unique_ptr<AccessCase> AccessCase::createSetPrivateBrand(
+    VM& vm, JSCell* owner, CacheableIdentifier identifier, Structure* oldStructure, Structure* newStructure)
+{
+    RELEASE_ASSERT(oldStructure == newStructure->previousID());
+    return std::unique_ptr<AccessCase>(new AccessCase(vm, owner, SetPrivateBrand, identifier, invalidOffset, newStructure, { }, { }));
+}
+
 AccessCase::~AccessCase()
 {
 }
@@ -294,6 +301,7 @@ bool AccessCase::requiresIdentifierNameMatch() const
     case ScopedArgumentsLength:
     case ModuleNamespaceLoad:
     case CheckPrivateBrand:
+    case SetPrivateBrand:
         return true;
     case InstanceOfHit:
     case InstanceOfMiss:
@@ -348,6 +356,7 @@ bool AccessCase::requiresInt32PropertyCheck() const
     case InstanceOfMiss:
     case InstanceOfGeneric:
     case CheckPrivateBrand:
+    case SetPrivateBrand:
         return false;
     case IndexedInt32Load:
     case IndexedDoubleLoad:
@@ -391,6 +400,7 @@ bool AccessCase::needsScratchFPR() const
     case InHit:
     case InMiss:
     case CheckPrivateBrand:
+    case SetPrivateBrand:
     case ArrayLength:
     case StringLength:
     case DirectArgumentsLength:
@@ -479,6 +489,7 @@ void AccessCase::forEachDependentCell(VM& vm, const Functor& functor) const
     case InHit:
     case InMiss:
     case CheckPrivateBrand:
+    case SetPrivateBrand:
     case ArrayLength:
     case StringLength:
     case DirectArgumentsLength:
@@ -529,6 +540,7 @@ bool AccessCase::doesCalls(VM& vm, Vector<JSCell*>* cellsToMarkIfDoesCalls) cons
     case InHit:
     case InMiss:
     case CheckPrivateBrand:
+    case SetPrivateBrand:
     case ArrayLength:
     case StringLength:
     case DirectArgumentsLength:
@@ -681,6 +693,7 @@ bool AccessCase::canReplace(const AccessCase& other) const
     case InHit:
     case InMiss:
     case CheckPrivateBrand:
+    case SetPrivateBrand:
         if (other.type() != type())
             return false;
 
@@ -712,7 +725,7 @@ void AccessCase::dump(PrintStream& out) const
         out.print(comma, "prototype access chain = ");
         m_polyProtoAccessChain->dump(structure(), out);
     } else {
-        if (m_type == Transition || m_type == Delete)
+        if (m_type == Transition || m_type == Delete || m_type == SetPrivateBrand)
             out.print(comma, "structure = ", pointerDump(structure()), " -> ", pointerDump(newStructure()));
         else if (m_structure)
             out.print(comma, "structure = ", pointerDump(m_structure.get()));
@@ -2047,6 +2060,19 @@ void AccessCase::generateImpl(AccessGenerationState& state)
         jit.move(MacroAssembler::TrustedImm32(true), valueRegs.payloadGPR());
 
         allocator.restoreReusedRegistersByPopping(jit, preservedState);
+        state.succeed();
+        return;
+    }
+
+    case SetPrivateBrand: {
+        ASSERT(structure()->transitionWatchpointSetHasBeenInvalidated());
+        ASSERT(newStructure()->transitionKind() == TransitionKind::SetBrand);
+
+        uint32_t structureBits = bitwise_cast<uint32_t>(newStructure()->id());
+        jit.store32(
+            CCallHelpers::TrustedImm32(structureBits),
+            CCallHelpers::Address(baseGPR, JSCell::structureIDOffset()));
+
         state.succeed();
         return;
     }

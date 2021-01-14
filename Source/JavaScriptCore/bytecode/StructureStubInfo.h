@@ -60,6 +60,7 @@ enum class AccessType : int8_t {
     DeleteByVal,
     GetPrivateName,
     CheckPrivateBrand,
+    SetPrivateBrand,
 };
 
 enum class CacheType : int8_t {

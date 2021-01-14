@@ -855,6 +855,9 @@ void printInternal(PrintStream& out, AccessCase::AccessType type)
     case AccessCase::CheckPrivateBrand:
         out.print("CheckPrivateBrand");
         return;
+    case AccessCase::SetPrivateBrand:
+        out.print("SetPrivateBrand");
+        return;
     case AccessCase::ArrayLength:
         out.print("ArrayLength");
         return;

@@ -1541,6 +1541,25 @@ bool BrandedStructure::checkBrand(Symbol* brand)
     return false;
 }
 
+Structure* Structure::setBrandTransitionFromExistingStructureImpl(Structure* structure, UniquedStringImpl* brandID)
+{
+    ASSERT(structure->isObject());
+
+    if (structure->hasBeenDictionary())
+        return nullptr;
+
+    if (Structure* existingTransition = structure->m_transitionTable.get(brandID, 0, TransitionKind::SetBrand))
+        return existingTransition;
+
+    return nullptr;
+}
+
+Structure* Structure::setBrandTransitionFromExistingStructureConcurrently(Structure* structure, UniquedStringImpl* brandID)
+{
+    ConcurrentJSLocker locker(structure->m_lock);
+    return setBrandTransitionFromExistingStructureImpl(structure, brandID);
+}
+
 Structure* Structure::setBrandTransition(VM& vm, Structure* structure, Symbol* brand, DeferredStructureTransitionWatchpointFire* deferred)
 {
     if (!structure->isDictionary()) {

@@ -287,6 +287,9 @@ void StructureStubInfo::reset(const ConcurrentJSLockerBase& locker, CodeBlock* c
     case AccessType::CheckPrivateBrand:
         resetCheckPrivateBrand(codeBlock, *this);
         break;
+    case AccessType::SetPrivateBrand:
+        resetSetPrivateBrand(codeBlock, *this);
+        break;
     }
     
     deref();
