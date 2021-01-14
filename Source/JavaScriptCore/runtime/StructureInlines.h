@@ -186,6 +186,7 @@ void Structure::forEachPropertyConcurrently(const Functor& functor)
         case TransitionKind::PropertyAttributeChange:
             break;
         case TransitionKind::PropertyDeletion:
+        case TransitionKind::SetBrand:
             continue;
         default:
             ASSERT_NOT_REACHED();
