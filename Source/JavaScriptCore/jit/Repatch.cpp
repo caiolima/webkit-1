@@ -1017,9 +1017,9 @@ static InlineCacheAction tryCacheCheckPrivateBrand(
         GCSafeConcurrentJSLocker locker(codeBlock->m_lock, vm.heap);
         if (forceICFailure(globalObject))
             return GiveUpOnCache;
-        
+
         Structure* structure = base->structure(vm);
-        
+
         InlineCacheAction action = actionForCell(vm, base);
         if (action != AttemptToCache)
             return action;
@@ -1032,14 +1032,14 @@ static InlineCacheAction tryCacheCheckPrivateBrand(
 
         if (result.generatedSomeCode()) {
             // LOG_IC((ICEvent::InReplaceWithJump, structure->classInfo(), ident, slot.slotBase() == base));
-            
+
             RELEASE_ASSERT(result.code());
             InlineAccess::rewireStubAsJump(stubInfo, CodeLocationLabel<JITStubRoutinePtrTag>(result.code()));
         }
     }
 
     fireWatchpointsAndClearStubIfNeeded(vm, stubInfo, codeBlock, result);
-    
+
     return result.shouldGiveUpNow() ? GiveUpOnCache : RetryCacheLater;
 }
 

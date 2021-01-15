@@ -251,12 +251,12 @@ private:
     MacroAssembler::PatchableJump m_slowPathJump;
 };
 
-class JITCheckPrivateBrandGenerator : public JITInlineCacheGenerator {
+class JITPrivateBrandAccessGenerator : public JITInlineCacheGenerator {
     using Base = JITInlineCacheGenerator;
 public:
-    JITCheckPrivateBrandGenerator() { }
+    JITPrivateBrandAccessGenerator() { }
 
-    JITCheckPrivateBrandGenerator(
+    JITPrivateBrandAccessGenerator(
         CodeBlock*, CodeOrigin, CallSiteIndex, AccessType, const RegisterSet& usedRegisters,
         JSValueRegs base, JSValueRegs brand);
 

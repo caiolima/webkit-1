@@ -20,11 +20,9 @@ function classExpr() {
 let C1 = classExpr();
 let C2 = classExpr();
 
-let c1 = new C1();
-let c2 = new C2();
-
-let arr = [c1, c2];
+let arr = [C1, C2];
 for (let i = 0; i < 20; i++) {
-    assert(arr[i % arr.length].access(), 'foo');
+    let c = new arr[i % arr.length]();
+    assert(c.access(), 'foo');
 }
 

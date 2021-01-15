@@ -324,7 +324,7 @@ void JITGetByValGenerator::finalize(
         fastPath, slowPath, fastPath.locationOf<JITStubRoutinePtrTag>(m_start));
 }
 
-JITCheckPrivateBrandGenerator::JITCheckPrivateBrandGenerator(CodeBlock* codeBlock, CodeOrigin codeOrigin, CallSiteIndex callSiteIndex, AccessType accessType, const RegisterSet& usedRegisters, JSValueRegs base, JSValueRegs brand)
+JITPrivateBrandAccessGenerator::JITPrivateBrandAccessGenerator(CodeBlock* codeBlock, CodeOrigin codeOrigin, CallSiteIndex callSiteIndex, AccessType accessType, const RegisterSet& usedRegisters, JSValueRegs base, JSValueRegs brand)
     : Base(codeBlock, codeOrigin, callSiteIndex, accessType, usedRegisters)
 {
     m_stubInfo->hasConstantIdentifier = false;
@@ -337,14 +337,14 @@ JITCheckPrivateBrandGenerator::JITCheckPrivateBrandGenerator(CodeBlock* codeBloc
 #endif
 }
 
-void JITCheckPrivateBrandGenerator::generateFastPath(MacroAssembler& jit)
+void JITPrivateBrandAccessGenerator::generateFastPath(MacroAssembler& jit)
 {
     m_start = jit.label();
     m_slowPathJump = jit.patchableJump();
     m_done = jit.label();
 }
 
-void JITCheckPrivateBrandGenerator::finalize(
+void JITPrivateBrandAccessGenerator::finalize(
     LinkBuffer& fastPath, LinkBuffer& slowPath)
 {
     ASSERT(m_start.isSet());

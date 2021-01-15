@@ -510,7 +510,7 @@ void JIT::privateCompileSlowCases()
     m_delByValIndex = 0;
     m_delByIdIndex = 0;
     m_instanceOfIndex = 0;
-    m_checkPrivateBrandIndex = 0;
+    m_privateBrandAccessIndex = 0;
     m_byValInstructionIndex = 0;
     m_callLinkInfoIndex = 0;
 
@@ -659,7 +659,7 @@ void JIT::privateCompileSlowCases()
     RELEASE_ASSERT(m_putByIdIndex == m_putByIds.size());
     RELEASE_ASSERT(m_inByIdIndex == m_inByIds.size());
     RELEASE_ASSERT(m_instanceOfIndex == m_instanceOfs.size());
-    RELEASE_ASSERT(m_checkPrivateBrandIndex == m_checkPrivateBrands.size());
+    RELEASE_ASSERT(m_privateBrandAccessIndex == m_privateBrandAccesses.size());
     RELEASE_ASSERT(m_callLinkInfoIndex == m_callCompilationInfo.size());
 
     if (shouldEmitProfiling())
@@ -908,7 +908,7 @@ CompilationResult JIT::link()
     finalizeInlineCaches(m_delByVals, patchBuffer);
     finalizeInlineCaches(m_inByIds, patchBuffer);
     finalizeInlineCaches(m_instanceOfs, patchBuffer);
-    finalizeInlineCaches(m_checkPrivateBrands, patchBuffer);
+    finalizeInlineCaches(m_privateBrandAccesses, patchBuffer);
 
     if (m_byValCompilationInfo.size()) {
         CodeLocationLabel<ExceptionHandlerPtrTag> exceptionHandler = patchBuffer.locationOf<ExceptionHandlerPtrTag>(m_exceptionHandler);

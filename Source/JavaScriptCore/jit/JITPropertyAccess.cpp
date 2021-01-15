@@ -154,12 +154,12 @@ void JIT::emit_op_set_private_brand(const Instruction* currentInstruction)
 
     emitJumpSlowCaseIfNotJSCell(baseGPR, base);
 
-    JITCheckPrivateBrandGenerator gen(
+    JITPrivateBrandAccessGenerator gen(
         m_codeBlock, CodeOrigin(m_bytecodeIndex), CallSiteIndex(m_bytecodeIndex), AccessType::SetPrivateBrand, RegisterSet::stubUnavailableRegisters(),
         JSValueRegs(baseGPR), JSValueRegs(brandGPR));
     gen.generateFastPath(*this);
     addSlowCase(gen.slowPathJump());
-    m_checkPrivateBrands.append(gen);
+    m_privateBrandAccesses.append(gen);
 
     // We should emit write-barrier at the end of sequence since write-barrier clobbers registers.
     // IC can write new Structure without write-barrier if a base is cell.
@@ -175,8 +175,8 @@ void JIT::emitSlow_op_set_private_brand(const Instruction*, Vector<SlowCaseEntry
 
     linkAllSlowCases(iter);
 
-    JITCheckPrivateBrandGenerator& gen = m_checkPrivateBrands[m_checkPrivateBrandIndex];
-    ++m_checkPrivateBrandIndex;
+    JITPrivateBrandAccessGenerator& gen = m_privateBrandAccesses[m_privateBrandAccessIndex];
+    ++m_privateBrandAccessIndex;
     Label coldPathBegin = label();
     Call call = callOperation(operationSetPrivateBrandOptimize, TrustedImmPtr(m_codeBlock->globalObject()), gen.stubInfo(), baseGPR, brandGPR);
     gen.reportSlowPathCall(coldPathBegin, call);
@@ -193,20 +193,20 @@ void JIT::emit_op_check_private_brand(const Instruction* currentInstruction)
 
     emitJumpSlowCaseIfNotJSCell(regT0, base);
 
-    JITCheckPrivateBrandGenerator gen(
+    JITPrivateBrandAccessGenerator gen(
         m_codeBlock, CodeOrigin(m_bytecodeIndex), CallSiteIndex(m_bytecodeIndex), AccessType::CheckPrivateBrand, RegisterSet::stubUnavailableRegisters(),
         JSValueRegs(regT0), JSValueRegs(regT1));
     gen.generateFastPath(*this);
     addSlowCase(gen.slowPathJump());
-    m_checkPrivateBrands.append(gen);
+    m_privateBrandAccesses.append(gen);
 }
 
 void JIT::emitSlow_op_check_private_brand(const Instruction*, Vector<SlowCaseEntry>::iterator& iter)
 {
     linkAllSlowCases(iter);
 
-    JITCheckPrivateBrandGenerator& gen = m_checkPrivateBrands[m_checkPrivateBrandIndex];
-    ++m_checkPrivateBrandIndex;
+    JITPrivateBrandAccessGenerator& gen = m_privateBrandAccesses[m_privateBrandAccessIndex];
+    ++m_privateBrandAccessIndex;
     Label coldPathBegin = label();
     Call call = callOperation(operationCheckPrivateBrandOptimize, TrustedImmPtr(m_codeBlock->globalObject()), gen.stubInfo(), regT0, regT1);
     gen.reportSlowPathCall(coldPathBegin, call);

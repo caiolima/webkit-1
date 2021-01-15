@@ -1360,7 +1360,7 @@ void AccessCase::generateWithGuard(
     case CheckPrivateBrand: {
         emitDefaultGuard();
         state.succeed();
-        return;                        
+        return;
     }
         
     default:
