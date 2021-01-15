@@ -532,6 +532,8 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node, bool igno
     case PutPrivateNameById:
     case GetPrivateName:
     case GetPrivateNameById:
+    case CheckPrivateBrand:
+    case SetPrivateBrand:
     case DefineDataProperty:
     case DefineAccessorProperty:
     case Arrayify:

@@ -2964,6 +2964,16 @@ void SpeculativeJIT::compile(Node* node)
         break;
     }
 
+    case CheckPrivateBrand: {
+        compileCheckPrivateBrand(node);
+        break;
+    }
+
+    case SetPrivateBrand: {
+        compileSetPrivateBrand(node);
+        break;
+    }
+
     case PutByValDirect:
     case PutByVal:
     case PutByValAlias: {

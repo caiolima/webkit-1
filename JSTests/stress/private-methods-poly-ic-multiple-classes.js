@@ -21,7 +21,7 @@ let C1 = classExpr();
 let C2 = classExpr();
 
 let arr = [C1, C2];
-for (let i = 0; i < 20; i++) {
+for (let i = 0; i < 10000; i++) {
     let c = new arr[i % arr.length]();
     assert(c.access(), 'foo');
 }

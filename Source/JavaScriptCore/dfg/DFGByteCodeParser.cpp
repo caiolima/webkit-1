@@ -6258,6 +6258,30 @@ void ByteCodeParser::parseBlock(unsigned limit)
             NEXT_OPCODE(op_put_by_val_with_this);
         }
 
+        case op_check_private_brand: {
+            auto bytecode = currentInstruction->as<OpCheckPrivateBrand>();
+            Node* base = get(bytecode.m_base);
+            Node* brand = get(bytecode.m_brand);
+
+            // OOPS: Inline IC here
+
+            addToGraph(CheckPrivateBrand, base, brand);
+
+            NEXT_OPCODE(op_check_private_brand);
+        }
+
+        case op_set_private_brand: {
+            auto bytecode = currentInstruction->as<OpSetPrivateBrand>();
+            Node* base = get(bytecode.m_base);
+            Node* brand = get(bytecode.m_brand);
+
+            // OOPS: Inline IC here
+
+            addToGraph(SetPrivateBrand, base, brand);
+
+            NEXT_OPCODE(op_set_private_brand);
+        }
+
         case op_put_private_name: {
             auto bytecode = currentInstruction->as<OpPutPrivateName>();
             Node* base = get(bytecode.m_base);

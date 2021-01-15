@@ -1931,6 +1931,8 @@ private:
         }
 
 
+        case SetPrivateBrand:
+        case CheckPrivateBrand:
         case PutPrivateName: {
             fixEdge<SymbolUse>(node->child2());
             break;
