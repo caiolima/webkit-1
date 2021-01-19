@@ -469,7 +469,8 @@ AccessGenerationResult PolymorphicAccess::regenerate(const GCSafeConcurrentJSLoc
     allocator.lock(state.baseGPR);
     if (state.u.thisGPR != InvalidGPRReg)
         allocator.lock(state.u.thisGPR);
-    allocator.lock(state.valueRegs);
+    if (state.valueRegs)
+        allocator.lock(state.valueRegs);
 #if USE(JSVALUE32_64)
     allocator.lock(stubInfo.baseTagGPR);
     if (stubInfo.v.thisTagGPR != InvalidGPRReg)

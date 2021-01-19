@@ -30,6 +30,7 @@
 #include "ArrayConstructor.h"
 #include "ArrayPrototype.h"
 #include "CacheableIdentifierInlines.h"
+#include "CheckPrivateBrandStatus.h"
 #include "DFGAbstractInterpreter.h"
 #include "DFGAbstractInterpreterClobberState.h"
 #include "DOMJITGetterSetter.h"
@@ -4367,6 +4368,7 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
     case FilterPutByIdStatus:
     case FilterInByIdStatus:
     case FilterDeleteByStatus:
+    case FilterCheckPrivateBrandStatus:
     case ClearCatchLocals:
         break;
 
@@ -4552,6 +4554,13 @@ void AbstractInterpreter<AbstractStateType>::filterICStatus(Node* node)
         AbstractValue& value = forNode(node->child1());
         if (value.m_structure.isFinite())
             node->deleteByStatus()->filter(value.m_structure.toStructureSet());
+        break;
+    }
+
+    case FilterCheckPrivateBrandStatus: {
+        AbstractValue& value = forNode(node->child1());
+        if (value.m_structure.isFinite())
+            node->checkPrivateBrandStatus()->filter(value.m_structure.toStructureSet());
         break;
     }
 

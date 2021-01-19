@@ -5687,6 +5687,7 @@ void SpeculativeJIT::compile(Node* node)
     case FilterPutByIdStatus:
     case FilterInByIdStatus:
     case FilterDeleteByStatus:
+    case FilterCheckPrivateBrandStatus:
         m_interpreter.filterICStatus(node);
         noResult(node);
         break;

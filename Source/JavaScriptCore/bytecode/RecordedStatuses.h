@@ -30,6 +30,7 @@
 #include "GetByStatus.h"
 #include "InByIdStatus.h"
 #include "PutByIdStatus.h"
+#include "CheckPrivateBrandStatus.h"
 
 namespace JSC {
 
@@ -49,6 +50,7 @@ struct RecordedStatuses {
     PutByIdStatus* addPutByIdStatus(const CodeOrigin&, const PutByIdStatus&);
     InByIdStatus* addInByIdStatus(const CodeOrigin&, const InByIdStatus&);
     DeleteByStatus* addDeleteByStatus(const CodeOrigin&, const DeleteByStatus&);
+    CheckPrivateBrandStatus* addCheckPrivateBrandStatus(const CodeOrigin&, const CheckPrivateBrandStatus&);
     
     void visitAggregate(SlotVisitor&);
     void markIfCheap(SlotVisitor&);
@@ -66,6 +68,7 @@ struct RecordedStatuses {
         func(puts);
         func(ins);
         func(deletes);
+        func(checkPrivateBrands);
     }
     
     Vector<std::pair<CodeOrigin, std::unique_ptr<CallLinkStatus>>> calls;
@@ -73,6 +76,7 @@ struct RecordedStatuses {
     Vector<std::pair<CodeOrigin, std::unique_ptr<PutByIdStatus>>> puts;
     Vector<std::pair<CodeOrigin, std::unique_ptr<InByIdStatus>>> ins;
     Vector<std::pair<CodeOrigin, std::unique_ptr<DeleteByStatus>>> deletes;
+    Vector<std::pair<CodeOrigin, std::unique_ptr<CheckPrivateBrandStatus>>> checkPrivateBrands;
 };
 
 } // namespace JSC

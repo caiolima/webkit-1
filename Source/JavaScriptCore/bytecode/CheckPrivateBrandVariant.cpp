@@ -25,9 +25,9 @@
  */
 
 #include "config.h"
-#include "Variant.h"
-
 #include "CheckPrivateBrandVariant.h"
+
+#include "CacheableIdentifierInlines.h"
 
 namespace JSC {
 
@@ -38,7 +38,7 @@ CheckPrivateBrandVariant::CheckPrivateBrandVariant(CacheableIdentifier identifie
 
 CheckPrivateBrandVariant::~CheckPrivateBrandVariant() { }
 
-CheckPrivateBrandVariant::CheckPrivateBrandVariant(const DeleteByIdVariant& other)
+CheckPrivateBrandVariant::CheckPrivateBrandVariant(const CheckPrivateBrandVariant& other)
 {
     *this = other;
 }

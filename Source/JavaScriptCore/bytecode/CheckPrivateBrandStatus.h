@@ -77,7 +77,7 @@ public:
     const Vector<CheckPrivateBrandVariant, 1>& variants() { return m_variants; }
     CacheableIdentifier singleIdentifier() const;
 
-    DeleteByStatus slowVersion() const;
+    CheckPrivateBrandStatus slowVersion() const;
 
     // Attempts to reduce the set of variants to fit the given structure set. This may be approximate.
     void filter(const StructureSet&);

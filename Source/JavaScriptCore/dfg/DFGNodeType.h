@@ -546,6 +546,7 @@ namespace JSC { namespace DFG {
     macro(FilterInByIdStatus, NodeMustGenerate) \
     macro(FilterPutByIdStatus, NodeMustGenerate) \
     macro(FilterDeleteByStatus, NodeMustGenerate) \
+    macro(FilterCheckPrivateBrandStatus, NodeMustGenerate) \
     /* Data view access */ \
     macro(DataViewGetInt, NodeMustGenerate | NodeResultJS) /* The gets are must generate for now because they do bounds checks */ \
     macro(DataViewGetFloat, NodeMustGenerate | NodeResultDouble) \

@@ -2829,6 +2829,7 @@ private:
         case FilterPutByIdStatus:
         case FilterInByIdStatus:
         case FilterDeleteByStatus:
+        case FilterCheckPrivateBrandStatus:
         case InvalidationPoint:
         case CreateArgumentsButterfly:
             break;

@@ -199,6 +199,7 @@ private:
             case FilterCallLinkStatus:
             case FilterInByIdStatus:
             case FilterDeleteByStatus:
+            case FilterCheckPrivateBrandStatus:
                 break;
 
             case GetByOffset: {
@@ -402,6 +403,7 @@ private:
             case FilterCallLinkStatus:
             case FilterInByIdStatus:
             case FilterDeleteByStatus:
+            case FilterCheckPrivateBrandStatus:
                 if (node->child1().node() == candidate)
                     node->remove(m_graph);
                 break;

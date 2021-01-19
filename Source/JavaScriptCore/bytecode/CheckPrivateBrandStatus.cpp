@@ -104,7 +104,7 @@ CheckPrivateBrandStatus CheckPrivateBrandStatus::computeForStubInfoWithoutExitSi
             ASSERT(structure);
             ASSERT(access.type() == AccessCase::CheckPrivateBrand);
 
-            CheckPrivateBrandVariant variant(access.identifier());
+            CheckPrivateBrandVariant variant(access.identifier(), StructureSet(structure));
             if (!result.appendVariant(variant))
                 return CheckPrivateBrandStatus(JSC::slowVersion(summary), *stubInfo);
         }
@@ -130,7 +130,7 @@ CheckPrivateBrandStatus CheckPrivateBrandStatus::computeFor(
     for (ICStatusContext* context : contextStack) {
         ICStatus status = context->get(codeOrigin);
 
-        auto bless = [&] (const DeleteByStatus& result) -> DeleteByStatus {
+        auto bless = [&] (const CheckPrivateBrandStatus& result) -> CheckPrivateBrandStatus {
             if (!context->isInlined(codeOrigin)) {
                 CheckPrivateBrandStatus baselineResult = computeForBaseline(
                     baselineBlock, baselineMap, bytecodeIndex, didExit);
@@ -173,9 +173,9 @@ void CheckPrivateBrandStatus::merge(const CheckPrivateBrandStatus& other)
 
     auto mergeSlow = [&] () {
         if (observedSlowPath() || other.observedSlowPath())
-            *this = DeleteByStatus(ObservedTakesSlowPath);
+            *this = CheckPrivateBrandStatus(ObservedTakesSlowPath);
         else
-            *this = DeleteByStatus(LikelyTakesSlowPath);
+            *this = CheckPrivateBrandStatus(LikelyTakesSlowPath);
     };
 
     switch (m_state) {

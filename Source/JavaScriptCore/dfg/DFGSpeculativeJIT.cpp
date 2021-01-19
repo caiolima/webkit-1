@@ -3699,6 +3699,8 @@ void SpeculativeJIT::compileCheckPrivateBrand(Node* node)
 
     m_jit.addPrivateBrandAccess(gen, slowPath.get());
     addSlowPathGenerator(WTFMove(slowPath));
+
+    noResult(node);
 }
 
 void SpeculativeJIT::compileSetPrivateBrand(Node* node)
@@ -3734,6 +3736,8 @@ void SpeculativeJIT::compileSetPrivateBrand(Node* node)
 
     m_jit.addPrivateBrandAccess(gen, slowPath.get());
     addSlowPathGenerator(WTFMove(slowPath));
+
+    noResult(node);
 }
 
 void SpeculativeJIT::compileCheckTypeInfoFlags(Node* node)

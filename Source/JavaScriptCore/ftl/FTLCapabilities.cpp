@@ -408,6 +408,7 @@ inline CapabilityLevel canCompile(Node* node)
     case FilterPutByIdStatus:
     case FilterInByIdStatus:
     case FilterDeleteByStatus:
+    case FilterCheckPrivateBrandStatus:
     case CreateThis:
     case CreatePromise:
     case CreateGenerator:

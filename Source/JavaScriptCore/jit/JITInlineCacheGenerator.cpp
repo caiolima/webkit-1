@@ -331,9 +331,11 @@ JITPrivateBrandAccessGenerator::JITPrivateBrandAccessGenerator(CodeBlock* codeBl
 
     m_stubInfo->baseGPR = base.payloadGPR();
     m_stubInfo->regs.brandGPR = brand.payloadGPR();
+    m_stubInfo->valueGPR = InvalidGPRReg;
 #if USE(JSVALUE32_64)
     m_stubInfo->baseTagGPR = base.tagGPR();
     m_stubInfo->v.brandTagGPR = brand.tagGPR();
+    m_stubInfo->valueTagGPR = InvalidGPRReg;
 #endif
 }
 

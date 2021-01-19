@@ -37,6 +37,7 @@
 #include "BytecodeOperandsForCheckpoint.h"
 #include "CacheableIdentifierInlines.h"
 #include "CallLinkStatus.h"
+#include "CheckPrivateBrandStatus.h"
 #include "CodeBlock.h"
 #include "CodeBlockWithJITType.h"
 #include "CommonSlowPaths.h"
@@ -6262,10 +6263,37 @@ void ByteCodeParser::parseBlock(unsigned limit)
             auto bytecode = currentInstruction->as<OpCheckPrivateBrand>();
             Node* base = get(bytecode.m_base);
             Node* brand = get(bytecode.m_brand);
+            bool compiledAsCheckStructure = false;
 
-            // OOPS: Inline IC here
+            CheckPrivateBrandStatus checkStatus = CheckPrivateBrandStatus::computeFor(
+                m_inlineStackTop->m_profiledBlock,
+                m_inlineStackTop->m_baselineMap, m_icContextStack,
+                currentCodeOrigin());
 
-            addToGraph(CheckPrivateBrand, base, brand);
+            if (!m_inlineStackTop->m_exitProfile.hasExitSite(m_currentIndex, BadIdent)
+                && !m_inlineStackTop->m_exitProfile.hasExitSite(m_currentIndex, BadType)
+                && !m_inlineStackTop->m_exitProfile.hasExitSite(m_currentIndex, BadConstantValue)) {
+
+                if (CacheableIdentifier identifier = checkStatus.singleIdentifier()) {
+                    m_graph.identifiers().ensure(identifier.uid());
+                    ASSERT(identifier.isSymbol());
+                    FrozenValue* frozen = m_graph.freezeStrong(identifier.cell());
+                    addToGraph(CheckIsConstant, OpInfo(frozen), brand);
+
+                    if (checkStatus.isSimple() && checkStatus.variants().size() && Options::useAccessInlining()) {
+                        ASSERT(checkStatus.variants().size() == 1); // If we have single identifier, we should have only 1 variant.
+                        CheckPrivateBrandVariant variant = checkStatus.variants()[0];
+
+                        addToGraph(FilterCheckPrivateBrandStatus, OpInfo(m_graph.m_plan.recordedStatuses().addCheckPrivateBrandStatus(currentCodeOrigin(), checkStatus)), base);
+                        addToGraph(CheckStructure, OpInfo(m_graph.addStructureSet(variant.structureSet())), base);
+
+                        compiledAsCheckStructure = true;
+                    }
+                }
+            }
+
+            if (!compiledAsCheckStructure)
+                addToGraph(CheckPrivateBrand, base, brand);
 
             NEXT_OPCODE(op_check_private_brand);
         }
