@@ -75,6 +75,7 @@
 #include "PutByIdFlags.h"
 #include "PutByIdStatus.h"
 #include "RegExpPrototype.h"
+#include "SetPrivateBrandStatus.h"
 #include "StackAlignment.h"
 #include "StringConstructor.h"
 #include "StructureStubInfo.h"
@@ -6303,9 +6304,41 @@ void ByteCodeParser::parseBlock(unsigned limit)
             Node* base = get(bytecode.m_base);
             Node* brand = get(bytecode.m_brand);
 
-            // OOPS: Inline IC here
+            bool inlinedSetPrivateBrand = false;
+            SetPrivateBrandStatus setStatus = SetPrivateBrandStatus::computeFor(
+                m_inlineStackTop->m_profiledBlock,
+                m_inlineStackTop->m_baselineMap, m_icContextStack,
+                currentCodeOrigin());
 
-            addToGraph(SetPrivateBrand, base, brand);
+            if (!m_inlineStackTop->m_exitProfile.hasExitSite(m_currentIndex, BadIdent)
+                && !m_inlineStackTop->m_exitProfile.hasExitSite(m_currentIndex, BadType)
+                && !m_inlineStackTop->m_exitProfile.hasExitSite(m_currentIndex, BadConstantValue)) {
+
+                if (CacheableIdentifier identifier = setStatus.singleIdentifier()) {
+                    ASSERT(identifier.isSymbol());
+                    FrozenValue* frozen = m_graph.freezeStrong(identifier.cell());
+                    addToGraph(CheckIsConstant, OpInfo(frozen), brand);
+
+                    if (setStatus.isSimple() && setStatus.variants().size() == 1 && Options::useAccessInlining()) {
+                        SetPrivateBrandVariant variant = setStatus.variants()[0];
+
+                        addToGraph(FilterSetPrivateBrandStatus, OpInfo(m_graph.m_plan.recordedStatuses().addSetPrivateBrandStatus(currentCodeOrigin(), setStatus)), base);
+                        addToGraph(CheckStructure, OpInfo(m_graph.addStructureSet(variant.oldStructure())), base);
+                        ASSERT(variant.oldStructure()->transitionWatchpointSetHasBeenInvalidated());
+                        ASSERT(variant.newStructure());
+
+                        Transition* transition = m_graph.m_transitions.add(
+                            m_graph.registerStructure(variant.oldStructure()), m_graph.registerStructure(variant.newStructure()));
+
+                        addToGraph(PutStructure, OpInfo(transition), base);
+
+                        inlinedSetPrivateBrand = true;
+                    }
+                }
+            }
+
+            if (!inlinedSetPrivateBrand)
+                addToGraph(SetPrivateBrand, base, brand);
 
             NEXT_OPCODE(op_set_private_brand);
         }

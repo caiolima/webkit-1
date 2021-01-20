@@ -206,7 +206,10 @@ void SetPrivateBrandStatus::filter(const StructureSet& structureSet)
 {
     if (m_state != Simple)
         return;
-    filterICStatusVariants(m_variants, structureSet);
+    m_variants.removeAllMatching(
+        [&] (auto& variant) -> bool {
+            return !structureSet.contains(variant.oldStructure());
+        });
     if (m_variants.isEmpty())
         m_state = NoInformation;
 }
@@ -231,13 +234,13 @@ CacheableIdentifier SetPrivateBrandStatus::singleIdentifier() const
 
 void SetPrivateBrandStatus::visitAggregate(SlotVisitor& visitor)
 {
-    for (SetPrivateBrandStatus& variant : m_variants)
+    for (SetPrivateBrandVariant& variant : m_variants)
         variant.visitAggregate(visitor);
 }
 
 void SetPrivateBrandStatus::markIfCheap(SlotVisitor& visitor)
 {
-    for (SetPrivateBrandStatus& variant : m_variants)
+    for (SetPrivateBrandVariant& variant : m_variants)
         variant.markIfCheap(visitor);
 }
 

@@ -1453,6 +1453,7 @@ private:
         case FilterInByIdStatus:
         case FilterDeleteByStatus:
         case FilterCheckPrivateBrandStatus:
+        case FilterSetPrivateBrandStatus:
         case ClearCatchLocals:
         case DataViewSet:
         case InvalidationPoint:

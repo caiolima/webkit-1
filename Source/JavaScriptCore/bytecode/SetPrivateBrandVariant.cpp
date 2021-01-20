@@ -31,7 +31,7 @@
 
 namespace JSC {
 
-SetPrivateBrandVariant::SetPrivateBrandVariant(CacheableIdentifier identifier, Structure* oldStrucutre, Structure* newStructure)
+SetPrivateBrandVariant::SetPrivateBrandVariant(CacheableIdentifier identifier, Structure* oldStructure, Structure* newStructure)
     : m_oldStructure(oldStructure)
     , m_newStructure(newStructure)
     , m_identifier(WTFMove(identifier))
@@ -86,7 +86,7 @@ void SetPrivateBrandVariant::dump(PrintStream& out) const
     dumpInContext(out, nullptr);
 }
 
-void SetPrivateBrandVariant::dumpInContext(PrintStream& out, DumpContext* context) const
+void SetPrivateBrandVariant::dumpInContext(PrintStream& out, DumpContext*) const
 {
     out.print("<");
     out.print("id='", m_identifier, "'");

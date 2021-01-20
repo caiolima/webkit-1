@@ -55,6 +55,7 @@
 #include "Operands.h"
 #include "PrivateFieldPutKind.h"
 #include "PutByIdVariant.h"
+#include "SetPrivateBrandVariant.h"
 #include "SpeculatedType.h"
 #include "TypeLocation.h"
 #include "ValueProfile.h"
@@ -3150,6 +3151,17 @@ public:
     {
         ASSERT(hasCheckPrivateBrandStatus());
         return m_opInfo.as<CheckPrivateBrandStatus*>();
+    }
+
+    bool hasSetPrivateBrandStatus()
+    {
+        return op() == FilterSetPrivateBrandStatus;
+    }
+
+    SetPrivateBrandStatus* setPrivateBrandStatus()
+    {
+        ASSERT(hasSetPrivateBrandStatus());
+        return m_opInfo.as<SetPrivateBrandStatus*>();
     }
 
     void dumpChildren(PrintStream& out)

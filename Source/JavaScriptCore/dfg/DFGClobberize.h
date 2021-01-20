@@ -506,6 +506,7 @@ void clobberize(Graph& graph, Node* node, const ReadFunctor& read, const WriteFu
     case FilterInByIdStatus:
     case FilterDeleteByStatus:
     case FilterCheckPrivateBrandStatus:
+    case FilterSetPrivateBrandStatus:
         write(SideState);
         return;
         

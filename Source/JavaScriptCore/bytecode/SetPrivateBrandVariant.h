@@ -36,7 +36,7 @@ class SetPrivateBrandStatus;
 class SetPrivateBrandVariant {
     WTF_MAKE_FAST_ALLOCATED;
 public:
-    SetPrivateBrandVariant(CacheableIdentifier, Structure* oldStrucutre, Structure* newStructure);
+    SetPrivateBrandVariant(CacheableIdentifier, Structure* oldStructure, Structure* newStructure);
 
     ~SetPrivateBrandVariant();
 
@@ -64,7 +64,7 @@ public:
             if (m_identifier != other.m_identifier)
                 return false;
         }
-        return structureSet().overlaps(other.structureSet());
+        return m_oldStructure == other.m_oldStructure;
     }
 
 private:

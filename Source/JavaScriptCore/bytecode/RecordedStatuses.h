@@ -26,11 +26,12 @@
 #pragma once
 
 #include "CallLinkStatus.h"
+#include "CheckPrivateBrandStatus.h"
 #include "DeleteByStatus.h"
 #include "GetByStatus.h"
 #include "InByIdStatus.h"
 #include "PutByIdStatus.h"
-#include "CheckPrivateBrandStatus.h"
+#include "SetPrivateBrandStatus.h"
 
 namespace JSC {
 
@@ -51,6 +52,7 @@ struct RecordedStatuses {
     InByIdStatus* addInByIdStatus(const CodeOrigin&, const InByIdStatus&);
     DeleteByStatus* addDeleteByStatus(const CodeOrigin&, const DeleteByStatus&);
     CheckPrivateBrandStatus* addCheckPrivateBrandStatus(const CodeOrigin&, const CheckPrivateBrandStatus&);
+    SetPrivateBrandStatus* addSetPrivateBrandStatus(const CodeOrigin&, const SetPrivateBrandStatus&);
     
     void visitAggregate(SlotVisitor&);
     void markIfCheap(SlotVisitor&);
@@ -69,6 +71,7 @@ struct RecordedStatuses {
         func(ins);
         func(deletes);
         func(checkPrivateBrands);
+        func(setPrivateBrands);
     }
     
     Vector<std::pair<CodeOrigin, std::unique_ptr<CallLinkStatus>>> calls;
@@ -77,6 +80,7 @@ struct RecordedStatuses {
     Vector<std::pair<CodeOrigin, std::unique_ptr<InByIdStatus>>> ins;
     Vector<std::pair<CodeOrigin, std::unique_ptr<DeleteByStatus>>> deletes;
     Vector<std::pair<CodeOrigin, std::unique_ptr<CheckPrivateBrandStatus>>> checkPrivateBrands;
+    Vector<std::pair<CodeOrigin, std::unique_ptr<SetPrivateBrandStatus>>> setPrivateBrands;
 };
 
 } // namespace JSC

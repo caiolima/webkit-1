@@ -36,6 +36,7 @@ RecordedStatuses& RecordedStatuses::operator=(RecordedStatuses&& other)
     ins = WTFMove(other.ins);
     deletes = WTFMove(other.deletes);
     checkPrivateBrands = WTFMove(other.checkPrivateBrands);
+    setPrivateBrands = WTFMove(other.setPrivateBrands);
     shrinkToFit();
     return *this;
 }
@@ -93,6 +94,14 @@ CheckPrivateBrandStatus* RecordedStatuses::addCheckPrivateBrandStatus(const Code
     return result;
 }
 
+SetPrivateBrandStatus* RecordedStatuses::addSetPrivateBrandStatus(const CodeOrigin& codeOrigin, const SetPrivateBrandStatus& status)
+{
+    auto statusPtr = makeUnique<SetPrivateBrandStatus>(status);
+    SetPrivateBrandStatus* result = statusPtr.get();
+    setPrivateBrands.append(std::make_pair(codeOrigin, WTFMove(statusPtr)));
+    return result;
+}
+
 void RecordedStatuses::visitAggregate(SlotVisitor& slotVisitor)
 {
     for (auto& pair : gets)
@@ -100,6 +109,8 @@ void RecordedStatuses::visitAggregate(SlotVisitor& slotVisitor)
     for (auto& pair : deletes)
         pair.second->visitAggregate(slotVisitor);
     for (auto& pair : checkPrivateBrands)
+        pair.second->visitAggregate(slotVisitor);
+    for (auto& pair : setPrivateBrands)
         pair.second->visitAggregate(slotVisitor);
 }
 
@@ -114,6 +125,8 @@ void RecordedStatuses::markIfCheap(SlotVisitor& slotVisitor)
     for (auto& pair : deletes)
         pair.second->markIfCheap(slotVisitor);
     for (auto& pair : checkPrivateBrands)
+        pair.second->markIfCheap(slotVisitor);
+    for (auto& pair : setPrivateBrands)
         pair.second->markIfCheap(slotVisitor);
 }
 

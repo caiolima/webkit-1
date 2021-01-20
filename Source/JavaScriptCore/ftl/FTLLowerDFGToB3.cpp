@@ -1645,6 +1645,7 @@ private:
         case FilterInByIdStatus:
         case FilterDeleteByStatus:
         case FilterCheckPrivateBrandStatus:
+        case FilterSetPrivateBrandStatus:
             compileFilterICStatus();
             break;
         case DateGetInt32OrNaN:
