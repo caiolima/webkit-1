@@ -1827,6 +1827,8 @@ llintOpWithMetadata(op_set_private_brand, OpSetPrivateBrand, macro (size, get, d
     loadp OpSetPrivateBrand::Metadata::m_brand[t5], t3
     bqneq t3, t1, .opSetPrivateBrandSlow
 
+    # OOPS: we missing write barrier here. Tests to verify such
+    # case is also necessary.
     loadi OpSetPrivateBrand::Metadata::m_newStructureID[t5], t1
     storei t1, JSCell::m_structureID[t0]
     dispatch()

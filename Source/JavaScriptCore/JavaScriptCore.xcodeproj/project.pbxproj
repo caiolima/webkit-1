@@ -1248,6 +1248,8 @@
 		863B23E00FC6118900703AA4 /* MacroAssemblerCodeRef.h in Headers */ = {isa = PBXBuildFile; fileRef = 863B23DF0FC60E6200703AA4 /* MacroAssemblerCodeRef.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		863FBC5A25B093B900F6C930 /* WasmValueLocation.h in Headers */ = {isa = PBXBuildFile; fileRef = 863FBC5825B093B900F6C930 /* WasmValueLocation.h */; };
 		865A30F1135007E100CDB49E /* JSCJSValueInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = 865A30F0135007E100CDB49E /* JSCJSValueInlines.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		865DA0C525B8957400875772 /* SetPrivateBrandVariant.h in Headers */ = {isa = PBXBuildFile; fileRef = 865DA0C425B8957400875772 /* SetPrivateBrandVariant.h */; };
+		865DA0C825B8960C00875772 /* SetPrivateBrandStatus.h in Headers */ = {isa = PBXBuildFile; fileRef = 865DA0C725B8960C00875772 /* SetPrivateBrandStatus.h */; };
 		866739D213BFDE710023D87C /* BigInteger.h in Headers */ = {isa = PBXBuildFile; fileRef = 866739D013BFDE710023D87C /* BigInteger.h */; };
 		866739D313BFDE710023D87C /* Uint16WithFraction.h in Headers */ = {isa = PBXBuildFile; fileRef = 866739D113BFDE710023D87C /* Uint16WithFraction.h */; };
 		86704B4312DB8A8100A9FE7B /* YarrSyntaxChecker.h in Headers */ = {isa = PBXBuildFile; fileRef = 86704B4112DB8A8100A9FE7B /* YarrSyntaxChecker.h */; };
@@ -4156,6 +4158,10 @@
 		8640923B156EED3B00566CC2 /* ARM64Registers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ARM64Registers.h; sourceTree = "<group>"; };
 		8640923C156EED3B00566CB2 /* MacroAssemblerARM64.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MacroAssemblerARM64.h; sourceTree = "<group>"; };
 		865A30F0135007E100CDB49E /* JSCJSValueInlines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSCJSValueInlines.h; sourceTree = "<group>"; };
+		865DA0C425B8957400875772 /* SetPrivateBrandVariant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SetPrivateBrandVariant.h; sourceTree = "<group>"; };
+		865DA0C625B8959E00875772 /* SetPrivateBrandVariant.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SetPrivateBrandVariant.cpp; sourceTree = "<group>"; };
+		865DA0C725B8960C00875772 /* SetPrivateBrandStatus.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SetPrivateBrandStatus.h; sourceTree = "<group>"; };
+		865DA0C925B8962A00875772 /* SetPrivateBrandStatus.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SetPrivateBrandStatus.cpp; sourceTree = "<group>"; };
 		866739D013BFDE710023D87C /* BigInteger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BigInteger.h; sourceTree = "<group>"; };
 		866739D113BFDE710023D87C /* Uint16WithFraction.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Uint16WithFraction.h; sourceTree = "<group>"; };
 		86704B4012DB8A8100A9FE7B /* YarrSyntaxChecker.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = YarrSyntaxChecker.cpp; path = yarr/YarrSyntaxChecker.cpp; sourceTree = "<group>"; };
@@ -8598,6 +8604,10 @@
 				86281EF125B6165E00367004 /* CheckPrivateBrandVariant.cpp */,
 				86281EF325B61AF000367004 /* CheckPrivateBrandStatus.h */,
 				86281EF525B61B0600367004 /* CheckPrivateBrandStatus.cpp */,
+				865DA0C425B8957400875772 /* SetPrivateBrandVariant.h */,
+				865DA0C625B8959E00875772 /* SetPrivateBrandVariant.cpp */,
+				865DA0C725B8960C00875772 /* SetPrivateBrandStatus.h */,
+				865DA0C925B8962A00875772 /* SetPrivateBrandStatus.cpp */,
 			);
 			path = bytecode;
 			sourceTree = "<group>";
@@ -9054,6 +9064,7 @@
 				7965C2171E5D799600B7591D /* AirAllocateRegistersByGraphColoring.h in Headers */,
 				0FEC856E1BDACDC70080FF74 /* AirAllocateStackByGraphColoring.h in Headers */,
 				0FEC85701BDACDC70080FF74 /* AirArg.h in Headers */,
+				865DA0C525B8957400875772 /* SetPrivateBrandVariant.h in Headers */,
 				0F64EAF31C4ECD0600621E9B /* AirArgInlines.h in Headers */,
 				0FEC85721BDACDC70080FF74 /* AirBasicBlock.h in Headers */,
 				0F2C63BC1E63440C00C13839 /* AirBlockInsertionSet.h in Headers */,
@@ -9939,6 +9950,7 @@
 				FE3A06B21C10CB8900390FDD /* JITBitAndGenerator.h in Headers */,
 				FE3A06A81C10BC8100390FDD /* JITBitBinaryOpGenerator.h in Headers */,
 				FE3A06A61C10B72D00390FDD /* JITBitOrGenerator.h in Headers */,
+				865DA0C825B8960C00875772 /* SetPrivateBrandStatus.h in Headers */,
 				FE3A06B41C10CB9300390FDD /* JITBitXorGenerator.h in Headers */,
 				86CCEFDE0F413F8900FD7F9E /* JITCode.h in Headers */,
 				0FFB80BC20A794730006AAF6 /* JITCodeInlines.h in Headers */,
