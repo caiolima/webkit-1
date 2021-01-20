@@ -3705,38 +3705,52 @@ void SpeculativeJIT::compileCheckPrivateBrand(Node* node)
 
 void SpeculativeJIT::compileSetPrivateBrand(Node* node)
 {
-    // OOPS: Refactor this to be only one compilePrivateBrandAccess(Node*, AccessType)
+    if (node->child1().useKind() == CellUse) {
+        SpeculateCellOperand base(this, node->child1());
+        SpeculateCellOperand brandValue(this, node->child2());
+
+        GPRReg baseGPR = base.gpr();
+        GPRReg brandGPR = brandValue.gpr();
+
+        speculateSymbol(node->child2(), brandGPR);
+
+        CodeOrigin codeOrigin = node->origin.semantic;
+        CallSiteIndex callSite = m_jit.recordCallSiteAndGenerateExceptionHandlingOSRExitIfNeeded(codeOrigin, m_stream->size());
+        RegisterSet usedRegisters = this->usedRegisters();
+
+        JITCompiler::JumpList slowCases;
+        JITPrivateBrandAccessGenerator gen(
+            m_jit.codeBlock(), codeOrigin, callSite, AccessType::SetPrivateBrand, usedRegisters,
+            JSValueRegs::payloadOnly(baseGPR), JSValueRegs::payloadOnly(brandGPR));
+
+        gen.generateFastPath(m_jit);
+        slowCases.append(gen.slowPathJump());
+
+        std::unique_ptr<SlowPathGenerator> slowPath = slowPathCall(
+            slowCases, this, operationSetPrivateBrandOptimize, NoResult, 
+            TrustedImmPtr::weakPointer(m_graph, m_graph.globalObjectFor(codeOrigin)), gen.stubInfo(), CCallHelpers::CellValue(baseGPR), CCallHelpers::CellValue(brandGPR));
+
+        m_jit.addPrivateBrandAccess(gen, slowPath.get());
+        addSlowPathGenerator(WTFMove(slowPath));
+
+        noResult(node);
+        return;
+    }
+
+    ASSERT(node->child1().useKind() == UntypedUse);
+
     JSValueOperand base(this, node->child1());
     SpeculateCellOperand brandValue(this, node->child2());
-
-    JSValueRegs baseRegs = base.jsValueRegs();
 
     GPRReg brandGPR = brandValue.gpr();
 
     speculateSymbol(node->child2(), brandGPR);
 
-    CodeOrigin codeOrigin = node->origin.semantic;
-    CallSiteIndex callSite = m_jit.recordCallSiteAndGenerateExceptionHandlingOSRExitIfNeeded(codeOrigin, m_stream->size());
-    RegisterSet usedRegisters = this->usedRegisters();
+    JSValueRegs baseRegs = base.jsValueRegs();
 
-    JITCompiler::JumpList slowCases;
-    if (needsTypeCheck(node->child1(), SpecCell))
-        slowCases.append(m_jit.branchIfNotCell(baseRegs));
-
-    JITPrivateBrandAccessGenerator gen(
-        m_jit.codeBlock(), codeOrigin, callSite, AccessType::SetPrivateBrand, usedRegisters,
-        baseRegs, JSValueRegs::payloadOnly(brandGPR));
-
-    gen.generateFastPath(m_jit);
-    slowCases.append(gen.slowPathJump());
-
-    std::unique_ptr<SlowPathGenerator> slowPath = slowPathCall(
-        slowCases, this, operationSetPrivateBrandOptimize, NoResult, 
-        TrustedImmPtr::weakPointer(m_graph, m_graph.globalObjectFor(codeOrigin)), gen.stubInfo(), baseRegs, CCallHelpers::CellValue(brandGPR));
-
-    m_jit.addPrivateBrandAccess(gen, slowPath.get());
-    addSlowPathGenerator(WTFMove(slowPath));
-
+    flushRegisters();
+    callOperation(operationSetPrivateBrandGeneric, TrustedImmPtr::weakPointer(m_graph, m_graph.globalObjectFor(node->origin.semantic)), nullptr, baseRegs, CCallHelpers::CellValue(brandGPR));
+    m_jit.exceptionCheck();
     noResult(node);
 }
 

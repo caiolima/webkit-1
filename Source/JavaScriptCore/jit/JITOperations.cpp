@@ -1131,7 +1131,8 @@ JSC_DEFINE_JIT_OPERATION(operationSetPrivateBrandGeneric, void, (JSGlobalObject*
     JSValue baseValue = JSValue::decode(encodedBaseValue);
     JSValue brand = JSValue::decode(encodedBrand);
 
-    stubInfo->tookSlowPath = true;
+    if (stubInfo)
+        stubInfo->tookSlowPath = true;
 
     ASSERT(baseValue.isObject());
     ASSERT(brand.isSymbol());
