@@ -1281,18 +1281,10 @@ void CodeBlock::finalizeLLIntInlineCaches()
             } else if (modeMetadata.mode == GetByIdMode::ProtoLoad) {
                 // OOPS: clear these inside destructor too.
                 bool ok = true;
-                for (auto* watchpoint : modeMetadata.protoLoadMode.watchpoints()) {
-                    if  (!vm.heap.isMarked(watchpoint->structure())) {
-                        ok = false;
-                        break;
-                    }
-                }
-                if (ok) {
-                    modeMetadata.protoLoadMode.forEachCase([&] (const ProtoLoadEntry& entry) {
-                        ok &= vm.heap.isMarked(vm.heap.structureIDTable().get(entry.structureID));
-                        ok &= vm.heap.isMarked(entry.cachedSlot);
-                    });
-                }
+                modeMetadata.protoLoadMode.forEachCase([&] (const ProtoLoadEntry& entry) {
+                    ok &= vm.heap.isMarked(vm.heap.structureIDTable().get(entry.structureID));
+                    ok &= vm.heap.isMarked(entry.cachedSlot);
+                });
                 
                 if (!ok)
                     modeMetadata.clearToDefaultModeWithoutCache();

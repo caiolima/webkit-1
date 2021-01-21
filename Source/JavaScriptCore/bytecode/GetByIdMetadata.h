@@ -25,8 +25,6 @@
 
 #pragma once
 
-#include "LLIntPrototypeLoadAdaptiveStructureWatchpoint.h"
-
 namespace JSC {
 
 enum class GetByIdMode : uint8_t {
@@ -175,17 +173,10 @@ struct GetByIdModeMetadataProtoLoad {
         // return cases[0].repatchCount;
     }
 
-    Bag<LLIntInlineCacheClearingStructureTransitionWatchpoint>& watchpoints()
-    {
-        return *bitwise_cast<Bag<LLIntInlineCacheClearingStructureTransitionWatchpoint>*>(&m_watchpoints);
-    }
-
-    static_assert(sizeof(uintptr_t) == sizeof(Bag<LLIntInlineCacheClearingStructureTransitionWatchpoint>));
-    uintptr_t m_watchpoints; // Bag<LLIntInlineCacheClearingStructureTransitionWatchpoint> 
     ProtoLoadEntry* cases;
 };
 #if CPU(LITTLE_ENDIAN) && CPU(ADDRESS64)
-static_assert(sizeof(GetByIdModeMetadataProtoLoad) == 16);
+static_assert(sizeof(GetByIdModeMetadataProtoLoad) == 8);
 #endif
 
 // In 64bit Little endian architecture, this union shares ProtoLoad's JSObject* cachedSlot with "hitCountForLLIntCaching" and "mode".
@@ -253,7 +244,6 @@ inline void GetByIdModeMetadata::freeOldIfNeeded()
 {
     if (mode == GetByIdMode::ProtoLoad) {
         //dataLogLn("Freeing GetByIdModeMetadata");
-        protoLoadMode.watchpoints().clear();
         if (protoLoadMode.cases)
             fastFree(protoLoadMode.cases);
     }
@@ -295,7 +285,6 @@ inline void GetByIdModeMetadata::setProtoLoadMode()
     // OOPS: This struct gets zeroed during metadata construction, so we won't go down this path
     // the first time we setProtoLoadMode. That's somewhat problematic since it means we won't
     // call this Bags ctor. However, Bag's ctor just zeroes the pointer. Maybe we can rely on that.
-    new (&protoLoadMode.watchpoints()) Bag<LLIntInlineCacheClearingStructureTransitionWatchpoint>;
     protoLoadMode.cases = nullptr;
 }
 
