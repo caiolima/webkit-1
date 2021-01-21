@@ -775,17 +775,36 @@ static void setupGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm, Cod
     }
 
 
-    JSObject* current = asObject(structure->prototypeForLookup(globalObject));
-    while (1) {
-        Structure* structure = current->structure(vm);
-        if (structure->transitionWatchpointSetHasBeenInvalidated())
+    // JSObject* current = asObject(structure->prototypeForLookup(globalObject));
+    // while (1) {
+    //     Structure* structure = current->structure(vm);
+    //     if (structure->transitionWatchpointSetHasBeenInvalidated())
+    //         return;
+
+    //     if (current == slot.slotBase())
+    //         break;
+
+    //     current = asObject(structure->prototypeForLookup(globalObject));
+    // }
+
+    ObjectPropertyConditionSet conditions = generateConditionsForPrototypePropertyHit(vm, codeBlock, globalObject, structure, slot.slotBase(), ident.impl());
+
+    if (!conditions.isValid())
+        return;
+
+    unsigned bytecodeOffset = codeBlock->bytecodeOffset(pc);
+    CodeBlock::StructureWatchpointMap& watchpointMap = codeBlock->llintGetByIdWatchpointMap();
+    Vector<LLIntPrototypeLoadAdaptiveStructureWatchpoint> watchpoints;
+    watchpoints.reserveInitialCapacity(conditions.size());
+    for (ObjectPropertyCondition condition : conditions) {
+        if (!condition.isWatchable())
             return;
-
-        if (current == slot.slotBase())
-            break;
-
-        current = asObject(structure->prototypeForLookup(globalObject));
+        watchpoints.uncheckedConstructAndAppend(codeBlock, condition, bytecodeOffset);
+        watchpoints.last().install(vm);
     }
+
+    auto result = watchpointMap.add(std::make_tuple(structure->id(), bytecodeOffset), WTFMove(watchpoints));
+    ASSERT_UNUSED(result, result.isNewEntry);
 
     {
         ConcurrentJSLocker locker(codeBlock->m_lock);
@@ -793,20 +812,6 @@ static void setupGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm, Cod
         if (metadata.mode != GetByIdMode::ProtoLoad) {
             WTF::dataLogLnIf(Options::verbosePIC(), "Changing IC mode to ProtoLoad on ", *codeBlock);
             metadata.setProtoLoadMode();
-        }
-
-        JSObject* current = asObject(structure->prototypeForLookup(globalObject));
-
-        unsigned bytecodeOffset = codeBlock->bytecodeOffset(pc);
-        while (1) {
-            Structure* structure = current->structure(vm);
-            auto* watchpoint = metadata.protoLoadMode.watchpoints().add(codeBlock, structure, bytecodeOffset);
-            watchpoint->install();
-
-            if (current == slot.slotBase())
-                break;
-
-            current = asObject(structure->prototypeForLookup(globalObject));
         }
 
         ProtoLoadEntry entry;
@@ -880,7 +885,7 @@ static JSValue performLLIntGetByID(const Instruction* pc, CodeBlock* codeBlock, 
             metadata.disabledCache = 1;
         
             if (structure->propertyAccessesAreCacheable() && !structure->needImpurePropertyWatchpoint()) {
-                WTF::dataLogLnIf(Options::verbosePIC(), "Adding selaccess IC ", *codeBlock, " ", bytecodeIndex);
+                WTF::dataLogLnIf(Options::verbosePIC(), "Adding selfccess IC ", *codeBlock, " ", bytecodeIndex);
                 metadata.defaultMode.structureID = structure->id();
                 metadata.defaultMode.cachedOffset = slot.cachedOffset();
                 vm.heap.writeBarrier(codeBlock);
