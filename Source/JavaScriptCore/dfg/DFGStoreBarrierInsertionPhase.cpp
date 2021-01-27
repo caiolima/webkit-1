@@ -273,6 +273,7 @@ private:
                 break;
             }
 
+            case SetPrivateBrand:
             case PutById:
             case PutByIdFlush:
             case PutByIdDirect:
@@ -281,7 +282,6 @@ private:
                 break;
             }
 
-            case SetPrivateBrand:
             case DeleteById:
             case DeleteByVal: {
                 // If child1 is not a cell-speculated, we call a generic implementation which emits write-barrier in C++ side.

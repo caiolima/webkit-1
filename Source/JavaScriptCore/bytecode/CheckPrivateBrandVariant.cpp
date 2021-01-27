@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Apple Inc. All rights reserved.
+ * Copyright (C) 2021 Apple Inc. All rights reserved.
  * Copyright (C) 2021 Igalia S.A. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

@@ -679,6 +679,7 @@ void clobberize(Graph& graph, Node* node, const ReadFunctor& read, const WriteFu
     case PutPrivateNameById:
     case GetPrivateName:
     case GetPrivateNameById:
+    // FIXME: We should have a better cloberizze rule for both CheckPrivateBrand SetPrivateBrand
     case CheckPrivateBrand:
     case SetPrivateBrand:
     case DefineDataProperty:

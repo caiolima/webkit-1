@@ -4164,19 +4164,8 @@ private:
 
     void compileSetPrivateBrand()
     {
-        if (m_node->child1().useKind() == CellUse)
-            compilePrivateBrandAccess(lowCell(m_node->child1()), lowSymbol(m_node->child2()), AccessType::SetPrivateBrand);
-        else {
-            DFG_ASSERT(m_graph, m_node, m_node->child1().useKind() == UntypedUse, m_node->child1().useKind());
-            JSGlobalObject* globalObject = m_graph.globalObjectFor(m_node->origin.semantic);
-
-            LValue base = lowJSValue(m_node->child1());
-            LValue brand = lowSymbol(m_node->child2());
-
-            vmCall(Void, operationSetPrivateBrandGeneric,
-                weakPointer(globalObject), m_out.constIntPtr(0), base, brand);
-        }
-    
+        DFG_ASSERT(m_graph, m_node, m_node->child1().useKind() == CellUse, m_node->child1().useKind());
+        compilePrivateBrandAccess(lowCell(m_node->child1()), lowSymbol(m_node->child2()), AccessType::SetPrivateBrand);
     }
 
     void compilePutByIdWithThis()

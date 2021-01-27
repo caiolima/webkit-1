@@ -22,8 +22,7 @@ class C {
 
   access(v) {
       let o = this;
-      // This branch is here to avoid PutPrivateNameById to be folded as 
-      // PutByOffset.
+      // This branch is here to avoid CheckPrivateBrand to be folded.
       if (v > 100)
           o = {};
       o.#method();

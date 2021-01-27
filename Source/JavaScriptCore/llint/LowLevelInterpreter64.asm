@@ -1831,6 +1831,7 @@ llintOpWithMetadata(op_set_private_brand, OpSetPrivateBrand, macro (size, get, d
     # case is also necessary.
     loadi OpSetPrivateBrand::Metadata::m_newStructureID[t5], t1
     storei t1, JSCell::m_structureID[t0]
+    writeBarrierOnOperand(size, get, m_base)
     dispatch()
 
 .opSetPrivateBrandSlow:

@@ -6319,6 +6319,8 @@ void ByteCodeParser::parseBlock(unsigned limit)
                     FrozenValue* frozen = m_graph.freezeStrong(identifier.cell());
                     addToGraph(CheckIsConstant, OpInfo(frozen), brand);
 
+
+                    // FIXME: We should include a MultiSetPrivateBrand to handle polymorphic cases
                     if (setStatus.isSimple() && setStatus.variants().size() == 1 && Options::useAccessInlining()) {
                         SetPrivateBrandVariant variant = setStatus.variants()[0];
 

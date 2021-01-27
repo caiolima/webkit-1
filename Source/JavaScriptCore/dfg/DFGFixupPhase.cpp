@@ -1932,9 +1932,7 @@ private:
 
 
         case SetPrivateBrand: {
-            if (node->child1()->shouldSpeculateCell())
-                fixEdge<CellUse>(node->child1());
-
+            fixEdge<CellUse>(node->child1());
             fixEdge<SymbolUse>(node->child2());
             break;
         }
