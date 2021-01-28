@@ -1366,6 +1366,7 @@ LLINT_SLOW_PATH_DECL(slow_path_check_private_brand)
         GCSafeConcurrentJSLocker locker(codeBlock->m_lock, vm.heap);
 
         metadata.m_structureID = structure->id();
+        metadata.m_brand.set(vm, codeBlock, brand.asCell());
         vm.heap.writeBarrier(codeBlock);
     }
 

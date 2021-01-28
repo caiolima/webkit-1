@@ -1825,10 +1825,8 @@ llintOpWithMetadata(op_set_private_brand, OpSetPrivateBrand, macro (size, get, d
     bineq t2, JSCell::m_structureID[t0], .opSetPrivateBrandSlow
 
     loadp OpSetPrivateBrand::Metadata::m_brand[t5], t3
-    bqneq t3, t1, .opSetPrivateBrandSlow
+    bpneq t3, t1, .opSetPrivateBrandSlow
 
-    # OOPS: we missing write barrier here. Tests to verify such
-    # case is also necessary.
     loadi OpSetPrivateBrand::Metadata::m_newStructureID[t5], t1
     storei t1, JSCell::m_structureID[t0]
     writeBarrierOnOperand(size, get, m_base)
@@ -1840,11 +1838,15 @@ llintOpWithMetadata(op_set_private_brand, OpSetPrivateBrand, macro (size, get, d
 end)
 
 llintOpWithMetadata(op_check_private_brand, OpCheckPrivateBrand, macro (size, get, dispatch, metadata, return)
+    metadata(t5, t2)
     get(m_base, t3)
     loadConstantOrVariableCell(size, t3, t0, .opCheckPrivateBrandSlow)
     get(m_brand, t3)
     loadConstantOrVariableCell(size, t3, t1, .opCheckPrivateBrandSlow)
-    metadata(t5, t2)
+
+    loadp OpSetPrivateBrand::Metadata::m_brand[t5], t3
+    bqneq t3, t1, .opCheckPrivateBrandSlow
+
     loadi OpCheckPrivateBrand::Metadata::m_structureID[t5], t2
     bineq t2, JSCell::m_structureID[t0], .opCheckPrivateBrandSlow
     dispatch()

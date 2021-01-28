@@ -380,6 +380,26 @@ void JIT::emitSlow_op_put_private_name(const Instruction* currentInstruction, Ve
     m_byValInstructionIndex++;
 }
 
+void JIT::emit_op_set_private_brand(const Instruction* currentInstruction)
+{
+    CRASH();
+}
+
+void JIT::emitSlow_op_set_private_brand(const Instruction*, Vector<SlowCaseEntry>::iterator& iter)
+{
+    CRASH();
+}
+
+void JIT::emit_op_check_private_brand(const Instruction* currentInstruction)
+{
+    CRASH();
+}
+
+void JIT::emitSlow_op_check_private_brand(const Instruction*, Vector<SlowCaseEntry>::iterator& iter)
+{
+    CRASH();
+}
+
 void JIT::emit_op_put_by_val_direct(const Instruction* currentInstruction)
 {
     emit_op_put_by_val<OpPutByValDirect>(currentInstruction);
