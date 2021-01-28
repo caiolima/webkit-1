@@ -203,12 +203,15 @@ void JIT::emit_op_check_private_brand(const Instruction* currentInstruction)
 
 void JIT::emitSlow_op_check_private_brand(const Instruction*, Vector<SlowCaseEntry>::iterator& iter)
 {
+    GPRReg baseGPR = regT0;
+    GPRReg brandGPR = regT1;
+
     linkAllSlowCases(iter);
 
     JITPrivateBrandAccessGenerator& gen = m_privateBrandAccesses[m_privateBrandAccessIndex];
     ++m_privateBrandAccessIndex;
     Label coldPathBegin = label();
-    Call call = callOperation(operationCheckPrivateBrandOptimize, TrustedImmPtr(m_codeBlock->globalObject()), gen.stubInfo(), regT0, regT1);
+    Call call = callOperation(operationCheckPrivateBrandOptimize, TrustedImmPtr(m_codeBlock->globalObject()), gen.stubInfo(), baseGPR, brandGPR);
     gen.reportSlowPathCall(coldPathBegin, call);
 }
 
