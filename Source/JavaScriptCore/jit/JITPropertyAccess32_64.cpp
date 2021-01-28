@@ -411,6 +411,8 @@ void JIT::emitSlow_op_set_private_brand(const Instruction*, Vector<SlowCaseEntry
     JSValueRegs baseRegs(regT1, regT0);
     JSValueRegs brandRegs(regT3, regT2);
 
+    linkAllSlowCases(iter);
+
     JITPrivateBrandAccessGenerator& gen = m_privateBrandAccesses[m_privateBrandAccessIndex];
     ++m_privateBrandAccessIndex;
     Label coldPathBegin = label();
