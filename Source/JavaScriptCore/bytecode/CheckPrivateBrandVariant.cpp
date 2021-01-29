@@ -34,7 +34,7 @@ namespace JSC {
 CheckPrivateBrandVariant::CheckPrivateBrandVariant(CacheableIdentifier identifier, const StructureSet& structureSet)
     : m_structureSet(structureSet)
     , m_identifier(WTFMove(identifier))
-{}
+{ }
 
 CheckPrivateBrandVariant::~CheckPrivateBrandVariant() { }
 

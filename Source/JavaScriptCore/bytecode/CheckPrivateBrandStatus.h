@@ -28,9 +28,9 @@
 #pragma once
 
 #include "CacheableIdentifier.h"
+#include "CheckPrivateBrandVariant.h"
 #include "CodeOrigin.h"
 #include "ConcurrentJSLock.h"
-#include "CheckPrivateBrandVariant.h"
 #include "ExitFlag.h"
 #include "ICStatusMap.h"
 #include "StubInfoSummary.h"

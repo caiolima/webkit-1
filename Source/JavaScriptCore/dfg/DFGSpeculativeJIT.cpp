@@ -3720,15 +3720,15 @@ void SpeculativeJIT::compileSetPrivateBrand(Node* node)
 
     JITCompiler::JumpList slowCases;
     JITPrivateBrandAccessGenerator gen(
-            m_jit.codeBlock(), codeOrigin, callSite, AccessType::SetPrivateBrand, usedRegisters,
-            JSValueRegs::payloadOnly(baseGPR), JSValueRegs::payloadOnly(brandGPR));
+        m_jit.codeBlock(), codeOrigin, callSite, AccessType::SetPrivateBrand, usedRegisters,
+        JSValueRegs::payloadOnly(baseGPR), JSValueRegs::payloadOnly(brandGPR));
 
     gen.generateFastPath(m_jit);
     slowCases.append(gen.slowPathJump());
 
     std::unique_ptr<SlowPathGenerator> slowPath = slowPathCall(
-            slowCases, this, operationSetPrivateBrandOptimize, NoResult, 
-            TrustedImmPtr::weakPointer(m_graph, m_graph.globalObjectFor(codeOrigin)), gen.stubInfo(), CCallHelpers::CellValue(baseGPR), CCallHelpers::CellValue(brandGPR));
+        slowCases, this, operationSetPrivateBrandOptimize, NoResult, 
+        TrustedImmPtr::weakPointer(m_graph, m_graph.globalObjectFor(codeOrigin)), gen.stubInfo(), CCallHelpers::CellValue(baseGPR), CCallHelpers::CellValue(brandGPR));
 
     m_jit.addPrivateBrandAccess(gen, slowPath.get());
     addSlowPathGenerator(WTFMove(slowPath));

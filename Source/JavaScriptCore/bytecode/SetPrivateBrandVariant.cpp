@@ -25,7 +25,7 @@
  */
 
 #include "config.h"
-#include "CheckPrivateBrandVariant.h"
+#include "SetPrivateBrandVariant.h"
 
 #include "CacheableIdentifierInlines.h"
 
@@ -35,7 +35,7 @@ SetPrivateBrandVariant::SetPrivateBrandVariant(CacheableIdentifier identifier, S
     : m_oldStructure(oldStructure)
     , m_newStructure(newStructure)
     , m_identifier(WTFMove(identifier))
-{}
+{ }
 
 SetPrivateBrandVariant::~SetPrivateBrandVariant() { }
 

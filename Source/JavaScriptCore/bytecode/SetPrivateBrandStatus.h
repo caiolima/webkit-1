@@ -30,9 +30,9 @@
 #include "CacheableIdentifier.h"
 #include "CodeOrigin.h"
 #include "ConcurrentJSLock.h"
-#include "SetPrivateBrandVariant.h"
 #include "ExitFlag.h"
 #include "ICStatusMap.h"
+#include "SetPrivateBrandVariant.h"
 #include "StubInfoSummary.h"
 
 namespace JSC {

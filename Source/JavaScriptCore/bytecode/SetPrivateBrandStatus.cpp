@@ -105,6 +105,9 @@ SetPrivateBrandStatus SetPrivateBrandStatus::computeForStubInfoWithoutExitSiteFe
             ASSERT(access.type() == AccessCase::SetPrivateBrand);
 
             Structure* newStructure = Structure::setBrandTransitionFromExistingStructureConcurrently(structure, access.identifier().uid());
+            if (!newStructure)
+                return SetPrivateBrandStatus(JSC::slowVersion(summary), *stubInfo);
+
             SetPrivateBrandVariant variant(access.identifier(), structure, newStructure);
             if (!result.appendVariant(variant))
                 return SetPrivateBrandStatus(JSC::slowVersion(summary), *stubInfo);
