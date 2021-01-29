@@ -1496,9 +1496,9 @@ auto Structure::findPropertyHashEntry(PropertyName propertyName) const -> Option
     return WTF::nullopt;
 }
 
-BrandedStructure::BrandedStructure(VM& vm, Structure* previous, Symbol* brandSymbol, DeferredStructureTransitionWatchpointFire* deferred)
+BrandedStructure::BrandedStructure(VM& vm, Structure* previous, UniquedStringImpl* brandUid, DeferredStructureTransitionWatchpointFire* deferred)
     : Structure(vm, previous, deferred)
-    , m_brand(vm, this, brandSymbol)
+    , m_brand(brandUid)
 {
     if (previous->isBrandedStructure())
         m_parentBrand.set(vm, this, jsCast<BrandedStructure*>(previous));
@@ -1507,35 +1507,25 @@ BrandedStructure::BrandedStructure(VM& vm, Structure* previous, Symbol* brandSym
 
 BrandedStructure::BrandedStructure(VM& vm, BrandedStructure* previous, DeferredStructureTransitionWatchpointFire* deferred)
     : Structure(vm, previous, deferred)
-    , m_brand(vm, this, previous->brand())
-    , m_parentBrand(vm, this, previous->parentBrand(), WriteBarrier<BrandedStructure>::MayBeNull)
+    , m_brand(previous->m_brand)
+    , m_parentBrand(vm, this, previous->m_parentBrand.get(), WriteBarrier<BrandedStructure>::MayBeNull)
 {
     this->setIsBrandedStructure(true);
 }
 
-void BrandedStructure::visitChildren(JSCell* cell, SlotVisitor& visitor)
-{
-    BrandedStructure* thisObject = jsCast<BrandedStructure*>(cell);
-    ASSERT_GC_OBJECT_INHERITS(thisObject, info());
-
-    Base::visitChildren(thisObject, visitor);
-    
-    visitor.append(thisObject->m_brand);
-    visitor.append(thisObject->m_parentBrand);
-}
-
-Structure* BrandedStructure::create(VM& vm, Structure* previous, Symbol* brand, DeferredStructureTransitionWatchpointFire* deferred)
+Structure* BrandedStructure::create(VM& vm, Structure* previous, UniquedStringImpl* brandUid, DeferredStructureTransitionWatchpointFire* deferred)
 {
     ASSERT(vm.structureStructure);
-    BrandedStructure* newStructure = new (NotNull, allocateCell<BrandedStructure>(vm.heap)) BrandedStructure(vm, previous, brand, deferred);
+    BrandedStructure* newStructure = new (NotNull, allocateCell<BrandedStructure>(vm.heap)) BrandedStructure(vm, previous, brandUid, deferred);
     newStructure->finishCreation(vm, previous);
     return newStructure;
 }
 
 bool BrandedStructure::checkBrand(Symbol* brand)
 {
+    UniquedStringImpl* brandUid = &brand->uid();
     for (BrandedStructure* currentStructure = this; currentStructure; currentStructure = currentStructure->m_parentBrand.get()) {
-        if (brand == currentStructure->m_brand.get())
+        if (brandUid == currentStructure->m_brand)
             return true;
     }
     return false;
@@ -1569,9 +1559,7 @@ Structure* Structure::setBrandTransition(VM& vm, Structure* structure, Symbol* b
         }
     }
 
-    DeferGC deferGC(vm.heap);
-
-    Structure* transition = BrandedStructure::create(vm, structure, brand, deferred);
+    Structure* transition = BrandedStructure::create(vm, structure, &brand->uid(), deferred);
     transition->setTransitionKind(TransitionKind::SetBrand);
 
     transition->m_cachedPrototypeChain.setMayBeNull(vm, transition, structure->m_cachedPrototypeChain.get());

@@ -892,27 +892,15 @@ public:
         return &vm.brandedStructureSpace;
     }
 
-    Symbol* brand()
-    {
-        return m_brand.get();
-    }
-
-    BrandedStructure* parentBrand()
-    {
-        return m_parentBrand.get();
-    }
-
-    static void visitChildren(JSCell*, SlotVisitor&);
-
     bool checkBrand(Symbol* brand);
 
 private: 
-    BrandedStructure(VM&, Structure*, Symbol* brand, DeferredStructureTransitionWatchpointFire*);
+    BrandedStructure(VM&, Structure*, UniquedStringImpl* brand, DeferredStructureTransitionWatchpointFire*);
     BrandedStructure(VM&, BrandedStructure*, DeferredStructureTransitionWatchpointFire*);
 
-    static Structure* create(VM&, Structure*, Symbol* brand, DeferredStructureTransitionWatchpointFire* = nullptr);
+    static Structure* create(VM&, Structure*, UniquedStringImpl* brand, DeferredStructureTransitionWatchpointFire* = nullptr);
 
-    WriteBarrier<Symbol> m_brand;
+    UniquedStringImpl* m_brand;
     WriteBarrier<BrandedStructure> m_parentBrand;
 
     friend class Structure;
