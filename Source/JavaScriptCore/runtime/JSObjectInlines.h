@@ -578,6 +578,8 @@ inline JSValue JSObject::get(JSGlobalObject* globalObject, uint64_t propertyName
 
 JSObject* createInvalidPrivateNameError(JSGlobalObject*);
 JSObject* createRedefinedPrivateNameError(JSGlobalObject*);
+JSObject* createReinstallPrivateMethodError(JSGlobalObject* globalObject);
+JSObject* createPrivateMethodAccessError(JSGlobalObject*);
 
 ALWAYS_INLINE bool JSObject::getPrivateFieldSlot(JSObject* object, JSGlobalObject* globalObject, PropertyName propertyName, PropertySlot& slot)
 {
@@ -677,7 +679,7 @@ inline bool JSObject::checkPrivateBrand(JSGlobalObject* globalObject, JSValue br
 
     Structure* structure = this->structure(vm);
     if (!structure->isBrandedStructure() || !jsCast<BrandedStructure*>(structure)->checkBrand(asSymbol(brand))) {
-        throwException(globalObject, scope, createInvalidPrivateNameError(globalObject));
+        throwException(globalObject, scope, createPrivateMethodAccessError(globalObject));
         RELEASE_AND_RETURN(scope, false);
     }
     EXCEPTION_ASSERT(!scope.exception());
@@ -693,9 +695,7 @@ inline void JSObject::setPrivateBrand(JSGlobalObject* globalObject, JSValue bran
 
     Structure* structure = this->structure(vm);
     if (structure->isBrandedStructure() && jsCast<BrandedStructure*>(structure)->checkBrand(asSymbol(brand))) {
-        // We are trying to install a brand already installed
-        // FIXME: Put a better error message
-        throwException(globalObject, scope, createInvalidPrivateNameError(globalObject));
+        throwException(globalObject, scope, createReinstallPrivateMethodError(globalObject));
         RELEASE_AND_RETURN(scope, void());
     }
     EXCEPTION_ASSERT(!scope.exception());

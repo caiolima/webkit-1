@@ -1218,7 +1218,7 @@ public:
     }
 
 private:
-    CachedHashMap<CachedRefPtr<CachedUniquedStringImpl, UniquedStringImpl, WTF::PackedPtrTraits<UniquedStringImpl>>, PrivateNameEntry, IdentifierRepHash, HashTraits<RefPtr<UniquedStringImpl>>, PrivateNameEntryHashTraits> m_privateNames;
+    CachedPrivateNameEnvironment m_privateNames;
 };
 
 class CachedSymbolTable : public CachedObject<SymbolTable> {

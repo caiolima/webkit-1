@@ -1358,9 +1358,8 @@ LLINT_SLOW_PATH_DECL(slow_path_check_private_brand)
     baseObject->checkPrivateBrand(globalObject, brand);
     LLINT_CHECK_EXCEPTION();
 
-    // OOPS: Is there really a case where we don't want to cache here?
-    // Since a brand can never be deleted, it's safe to rely on StructureID
-    // even if it's an uncacheable dictionary.
+    // Since a brand can't ever be removed from an object, it's safe to
+    // rely on StructureID even if it's an uncacheable dictionary.
     Structure* structure = baseObject->structure(vm);
     if (!LLINT_ALWAYS_ACCESS_SLOW) {
         GCSafeConcurrentJSLocker locker(codeBlock->m_lock, vm.heap);

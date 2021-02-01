@@ -268,11 +268,9 @@
         We changed BytecodeGenerator for FunctionNode and EvalNode to
         propagate parentScope VariableEnvironment. These environments stores
         private name entries that are visible into the scope of the
-        function/eval in addition to TDZ variables.
+        function/eval.
         This is required to identify the kind of access a private name is
         referring to, since it can be a private field or a private method.
-        Given this change, we changed the name of VariableEnvironment
-        from `parentScopeTDZVariables` to `parentScopeVariableEnvironment`.
 
         (JSC::BytecodeGenerator::instantiateLexicalVariables):
         (JSC::BytecodeGenerator::emitGetPrivateName):

@@ -3690,6 +3690,7 @@ void SpeculativeJIT::compileCheckPrivateBrand(Node* node)
         m_jit.codeBlock(), codeOrigin, callSite, AccessType::CheckPrivateBrand, usedRegisters,
         baseRegs, JSValueRegs::payloadOnly(brandGPR));
 
+    gen.stubInfo()->propertyIsSymbol = true;
     gen.generateFastPath(m_jit);
     slowCases.append(gen.slowPathJump());
 
@@ -3723,6 +3724,7 @@ void SpeculativeJIT::compileSetPrivateBrand(Node* node)
         m_jit.codeBlock(), codeOrigin, callSite, AccessType::SetPrivateBrand, usedRegisters,
         JSValueRegs::payloadOnly(baseGPR), JSValueRegs::payloadOnly(brandGPR));
 
+    gen.stubInfo()->propertyIsSymbol = true;
     gen.generateFastPath(m_jit);
     slowCases.append(gen.slowPathJump());
 

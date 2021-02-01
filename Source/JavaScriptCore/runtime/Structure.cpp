@@ -1552,12 +1552,9 @@ Structure* Structure::setBrandTransitionFromExistingStructureConcurrently(Struct
 
 Structure* Structure::setBrandTransition(VM& vm, Structure* structure, Symbol* brand, DeferredStructureTransitionWatchpointFire* deferred)
 {
-    if (!structure->isDictionary()) {
-        if (Structure* existingTransition = structure->m_transitionTable.get(&brand->uid(), 0, TransitionKind::SetBrand)) {
-            ASSERT(existingTransition->transitionKind() == TransitionKind::SetBrand);
-            return existingTransition;
-        }
-    }
+    Structure* existingTransition = setBrandTransitionFromExistingStructureImpl(structure, &brand->uid());
+    if (existingTransition) 
+        return existingTransition;
 
     Structure* transition = BrandedStructure::create(vm, structure, &brand->uid(), deferred);
     transition->setTransitionKind(TransitionKind::SetBrand);

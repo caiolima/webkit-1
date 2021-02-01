@@ -1024,14 +1024,15 @@ static InlineCacheAction tryCacheCheckPrivateBrand(
         if (action != AttemptToCache)
             return action;
 
-        // LOG_IC((ICEvent::InAddAccessCase, structure->classInfo(), ident, slot.slotBase() == base));
+        bool isBaseProperty = true;
+        LOG_IC((ICEvent::CheckPrivateBrandAddAccessCase, structure->classInfo(), ident, isBaseProperty));
 
         std::unique_ptr<AccessCase> newCase = AccessCase::createCheckPrivateBrand(vm, codeBlock, brandID, structure);
 
         result = stubInfo.addAccessCase(locker, globalObject, codeBlock, ECMAMode::strict(), brandID, WTFMove(newCase));
 
         if (result.generatedSomeCode()) {
-            // LOG_IC((ICEvent::InReplaceWithJump, structure->classInfo(), ident, slot.slotBase() == base));
+            LOG_IC((ICEvent::CheckPrivateBrandReplaceWithJump, structure->classInfo(), ident, isBaseProperty));
 
             RELEASE_ASSERT(result.code());
             InlineAccess::rewireStubAsJump(stubInfo, CodeLocationLabel<JITStubRoutinePtrTag>(result.code()));
@@ -1072,8 +1073,6 @@ static InlineCacheAction tryCacheSetPrivateBrand(
         InlineCacheAction action = actionForCell(vm, base);
         if (action != AttemptToCache)
             return action;
-
-        // LOG_IC((ICEvent::InAddAccessCase, structure->classInfo(), ident, slot.slotBase() == base));
         
         Structure* newStructure = Structure::setBrandTransitionFromExistingStructureConcurrently(oldStructure, brandID.uid());
         if (!newStructure)
@@ -1084,12 +1083,15 @@ static InlineCacheAction tryCacheSetPrivateBrand(
         ASSERT(newStructure->transitionKind() == TransitionKind::SetBrand);
         ASSERT(newStructure->isObject());
         
+        bool isBaseProperty = true;
+        LOG_IC((ICEvent::SetPrivateBrandAddAccessCase, oldStructure->classInfo(), ident, isBaseProperty));
+
         std::unique_ptr<AccessCase> newCase = AccessCase::createSetPrivateBrand(vm, codeBlock, brandID, oldStructure, newStructure);
 
         result = stubInfo.addAccessCase(locker, globalObject, codeBlock, ECMAMode::strict(), brandID, WTFMove(newCase));
 
         if (result.generatedSomeCode()) {
-            // LOG_IC((ICEvent::InReplaceWithJump, structure->classInfo(), ident, slot.slotBase() == base));
+            LOG_IC((ICEvent::SetPrivateBrandReplaceWithJump, oldStructure->classInfo(), ident, isBaseProperty));
             
             RELEASE_ASSERT(result.code());
             InlineAccess::rewireStubAsJump(stubInfo, CodeLocationLabel<JITStubRoutinePtrTag>(result.code()));

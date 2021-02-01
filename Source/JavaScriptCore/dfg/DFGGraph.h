@@ -1182,7 +1182,6 @@ public:
     RegisteredStructure symbolStructure;
 
     HashSet<Node*> m_slowGetByVal;
-    HashSet<Node*> m_privateBrandAccess;
 
 private:
     bool isStringPrototypeMethodSane(JSGlobalObject*, UniquedStringImpl*);
