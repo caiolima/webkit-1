@@ -422,7 +422,7 @@ void JIT::emitSlow_op_set_private_brand(const Instruction*, Vector<SlowCaseEntry
 
 void JIT::emit_op_check_private_brand(const Instruction* currentInstruction)
 {
-    auto bytecode = currentInstruction->as<OpSetPrivateBrand>();
+    auto bytecode = currentInstruction->as<OpCheckPrivateBrand>();
     VirtualRegister base = bytecode.m_base;
     VirtualRegister brand = bytecode.m_brand;
     JSValueRegs baseRegs(regT1, regT0);

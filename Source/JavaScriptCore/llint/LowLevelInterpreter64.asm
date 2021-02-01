@@ -1844,7 +1844,7 @@ llintOpWithMetadata(op_check_private_brand, OpCheckPrivateBrand, macro (size, ge
     get(m_brand, t3)
     loadConstantOrVariableCell(size, t3, t1, .opCheckPrivateBrandSlow)
 
-    loadp OpSetPrivateBrand::Metadata::m_brand[t5], t3
+    loadp OpCheckPrivateBrand::Metadata::m_brand[t5], t3
     bqneq t3, t1, .opCheckPrivateBrandSlow
 
     loadi OpCheckPrivateBrand::Metadata::m_structureID[t5], t2
