@@ -1270,7 +1270,7 @@ void CodeBlock::finalizeLLIntInlineCaches()
         // FIXME: https://bugs.webkit.org/show_bug.cgi?id=166418
         // We need to add optimizations for op_resolve_scope_for_hoisting_func_decl_in_eval to do link time scope resolution.
 
-        auto clearIfNeeded = [&] (GetByIdModeMetadata& modeMetadata, ASCIILiteral opName) {
+        auto clearIfNeeded = [&] (GetByIdModeMetadata& modeMetadata, ASCIILiteral) {
             if (modeMetadata.mode == GetByIdMode::Default) {
                 StructureID oldStructureID = modeMetadata.defaultMode.structureID;
                 if (!oldStructureID || vm.heap.isMarked(vm.heap.structureIDTable().get(oldStructureID)))
