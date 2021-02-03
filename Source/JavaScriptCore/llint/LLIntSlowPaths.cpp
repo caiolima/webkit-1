@@ -2586,7 +2586,7 @@ extern "C" NO_RETURN_DUE_TO_CRASH void llint_crash()
     CRASH();
 }
 
-extern "C" void pic_probe(CallFrame* callFrame, const Instruction* pc, int hitCount)
+extern "C" void pic_probe(CallFrame* callFrame, const Instruction*, int hitCount)
 {
     CodeBlock* codeBlock = callFrame->codeBlock();
     auto bytecodeIndex = callFrame->bytecodeIndex();
