@@ -1646,11 +1646,10 @@ void Heap::stopThePeriphery(GCConductor conn)
 
 #if ENABLE(JIT)
     if (Options::useJIT()) {
-        // OOPS
-        // DeferGCForAWhile awhile(*this);
-        // if (JITWorklist::ensureGlobalWorklist().completeAllForVM(m_vm)
-        //     && conn == GCConductor::Collector)
-        //     setGCDidJIT();
+        DeferGCForAWhile awhile(*this);
+        if (JITWorklist::ensureGlobalWorklist().completeAllForVM(m_vm)
+            && conn == GCConductor::Collector)
+            setGCDidJIT();
     }
 #endif // ENABLE(JIT)
     UNUSED_PARAM(conn);
