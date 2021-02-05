@@ -91,6 +91,7 @@ class ExecutableToCodeBlockEdge;
 class JSModuleEnvironment;
 class LLIntOffsetsExtractor;
 class LLIntPrototypeLoadAdaptiveStructureWatchpoint;
+class LLIntInlineCacheClearingStructureTransitionWatchpoint;
 class MetadataTable;
 class PCToCodeOriginMap;
 class RegisterAtOffsetList;
@@ -671,6 +672,9 @@ public:
     typedef HashMap<std::tuple<StructureID, unsigned>, Vector<LLIntPrototypeLoadAdaptiveStructureWatchpoint>> StructureWatchpointMap;
     StructureWatchpointMap& llintGetByIdWatchpointMap() { return m_llintGetByIdWatchpointMap; }
 
+    typedef HashMap<std::tuple<StructureID, unsigned>, Vector<LLIntInlineCacheClearingStructureTransitionWatchpoint>> StructureInlineCacheClearingWatchpointMap;
+    StructureInlineCacheClearingWatchpointMap& llintStructureInlineCacheClearingWatchpointMap() { return m_llintStructureInlineCacheClearingWatchpointMap; }
+
     // Functions for controlling when tiered compilation kicks in. This
     // controls both when the optimizing compiler is invoked and when OSR
     // entry happens. Two triggers exist: the loop trigger and the return
@@ -1020,6 +1024,7 @@ private:
     const void* m_instructionsRawPointer { nullptr };
     SentinelLinkedList<LLIntCallLinkInfo, PackedRawSentinelNode<LLIntCallLinkInfo>> m_incomingLLIntCalls;
     StructureWatchpointMap m_llintGetByIdWatchpointMap;
+    StructureInlineCacheClearingWatchpointMap m_llintStructureInlineCacheClearingWatchpointMap;
     RefPtr<JITCode> m_jitCode;
 #if ENABLE(JIT)
     std::unique_ptr<JITData> m_jitData;
