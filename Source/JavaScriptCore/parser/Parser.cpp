@@ -3175,7 +3175,10 @@ template <class TreeBuilder> TreeSourceElements Parser<LexerType>::parseClassFie
             switch (m_token.m_type) {
             case PRIVATENAME:
                 type = DefineFieldNode::Type::PrivateName;
-                FALLTHROUGH;
+                ident = &m_parserArena.identifierArena().makePrivateIdentifier(m_vm, *m_token.m_data.ident);
+                ASSERT(ident);
+                next();
+                break;
             case STRING:
             case IDENT:
             namedKeyword:
@@ -5217,6 +5220,7 @@ template <class TreeBuilder> TreeExpression Parser<LexerType>::parseMemberExpres
                 const Identifier* ident = m_token.m_data.ident;
                 auto type = DotType::Name;
                 if (match(PRIVATENAME)) {
+                    ident = &m_parserArena.identifierArena().makePrivateIdentifier(m_vm, *ident);
                     ASSERT(ident);
                     failIfTrue(baseIsSuper, "Cannot access private names from super");
                     if (UNLIKELY(currentScope()->evalContextType() == EvalContextType::InstanceFieldEvalContext))
