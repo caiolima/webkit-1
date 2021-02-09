@@ -3166,7 +3166,10 @@ template <class TreeBuilder> TreeSourceElements Parser<LexerType>::parseClassFie
             switch (m_token.m_type) {
             case PRIVATENAME:
                 type = DefineFieldNode::Type::PrivateName;
-                FALLTHROUGH;
+                ident = &m_parserArena.identifierArena().makePrivateIdentifier(m_vm, *m_token.m_data.ident);
+                ASSERT(ident);
+                next();
+                break;
             case STRING:
             case IDENT:
             namedKeyword:
@@ -4439,8 +4442,12 @@ template <class TreeBuilder> TreeProperty Parser<LexerType>::parseGetterSetter(T
 
     JSTokenLocation location(tokenLocation());
 
-    if (matchSpecIdentifier() || match(STRING) || (Options::usePrivateMethods() && match(PRIVATENAME)) || m_token.m_type & KeywordTokenFlag) {
-        stringPropertyName = m_token.m_data.ident;
+    bool matchesPrivateName = match(PRIVATENAME);
+    if (matchSpecIdentifier() || match(STRING) || (Options::usePrivateMethods() && matchesPrivateName) || m_token.m_type & KeywordTokenFlag) {
+        if (matchesPrivateName)
+            stringPropertyName = &m_parserArena.identifierArena().makePrivateIdentifier(m_vm, *m_token.m_data.ident);
+        else
+            stringPropertyName = m_token.m_data.ident;
         semanticFailIfTrue(tag == ClassElementTag::Static && *stringPropertyName == m_vm.propertyNames->prototype,
             "Cannot declare a static method named 'prototype'");
         semanticFailIfTrue(tag == ClassElementTag::Instance && *stringPropertyName == m_vm.propertyNames->constructor,
@@ -5207,6 +5214,7 @@ template <class TreeBuilder> TreeExpression Parser<LexerType>::parseMemberExpres
                 const Identifier* ident = m_token.m_data.ident;
                 auto type = DotType::Name;
                 if (match(PRIVATENAME)) {
+                    ident = &m_parserArena.identifierArena().makePrivateIdentifier(m_vm, *ident);
                     ASSERT(ident);
                     failIfTrue(baseIsSuper, "Cannot access private names from super");
                     if (UNLIKELY(currentScope()->evalContextType() == EvalContextType::InstanceFieldEvalContext))
