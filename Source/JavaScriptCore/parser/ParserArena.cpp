@@ -115,4 +115,11 @@ const Identifier& IdentifierArena::makePrivateIdentifier(VM& vm, ASCIILiteral pr
     return m_identifiers.last();
 }
 
+const Identifier& IdentifierArena::makePrivateIdentifier(VM& vm, const Identifier& identifier)
+{
+    auto symbol = vm.privateSymbolRegistry().symbolForKey(identifier.string());
+    m_identifiers.append(Identifier::fromUid(symbol));
+    return m_identifiers.last();
+}
+
 }

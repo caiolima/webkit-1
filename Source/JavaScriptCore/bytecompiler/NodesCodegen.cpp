@@ -633,7 +633,7 @@ RegisterID* PropertyListNode::emitBytecode(BytecodeGenerator& generator, Registe
     PropertyListNode* p = this;
     RegisterID* dst = nullptr;
     for (; p; p = p->m_next) {
-        if (!(p->m_node->type() & (PropertyNode::PrivateGetter | PropertyNode::PrivateSetter))))
+        if (!(p->m_node->type() & (PropertyNode::PrivateGetter | PropertyNode::PrivateSetter)))
             continue;
 
         // We group private getters and setters to store them in a object
@@ -660,7 +660,7 @@ RegisterID* PropertyListNode::emitBytecode(BytecodeGenerator& generator, Registe
             auto setterOrGetterIdent = pair.first->m_type & PropertyNode::PrivateGetter
                 ? generator.propertyNames().builtinNames().getPrivateName()
                 : generator.propertyNames().builtinNames().setPrivateName();
-            generator.emitPutById(getterSetterObj.get(), setterOrGetterIdent, value.get());
+            generator.emitDirectPutById(getterSetterObj.get(), setterOrGetterIdent, value.get());
         }
 
         if (pair.second) {
@@ -671,7 +671,7 @@ RegisterID* PropertyListNode::emitBytecode(BytecodeGenerator& generator, Registe
             auto setterOrGetterIdent = pair.second->m_type & PropertyNode::PrivateGetter
                 ? generator.propertyNames().builtinNames().getPrivateName()
                 : generator.propertyNames().builtinNames().setPrivateName();
-            generator.emitPutById(getterSetterObj.get(), setterOrGetterIdent, value.get());
+            generator.emitDirectPutById(getterSetterObj.get(), setterOrGetterIdent, value.get());
         }
 
         Variable var = generator.variable(*pair.first->name());
@@ -679,7 +679,7 @@ RegisterID* PropertyListNode::emitBytecode(BytecodeGenerator& generator, Registe
     }
     
     // Fast case: this loop just handles regular value properties.
-    for (; p && (p->m_node->m_type & PropertyNode::Constant); p = p->m_next) {
+    for (p = this; p && (p->m_node->m_type & PropertyNode::Constant); p = p->m_next) {
         dst = p->m_node->isInstanceClassProperty() ? prototype : dstOrConstructor;
 
         if (p->m_node->type() & (PropertyNode::PrivateGetter | PropertyNode::PrivateSetter))
@@ -688,7 +688,7 @@ RegisterID* PropertyListNode::emitBytecode(BytecodeGenerator& generator, Registe
         if (p->isComputedClassField())
             emitSaveComputedFieldName(generator, *p->m_node);
 
-        if (p->isInstanceClassField()) {
+        if (p->isInstanceClassField() && !(p->m_node->type() & PropertyNode::PrivateMethod)) {
             ASSERT(instanceFieldLocations);
             instanceFieldLocations->append(p->position());
             continue;
