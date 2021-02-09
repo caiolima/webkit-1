@@ -2999,7 +2999,7 @@ parseMethod:
             break;
         case PRIVATENAME: {
             ASSERT(Options::usePrivateClassFields());
-            ident = m_token.m_data.ident;
+            ident = &m_parserArena.identifierArena().makePrivateIdentifier(m_vm, *m_token.m_data.ident);
             if (!Options::usePrivateStaticClassFields())
                 failIfTrue(tag == ClassElementTag::Static, "Static class element cannot be private");
             failIfTrue(isGetter || isSetter, "Cannot parse class method with private name");
@@ -3026,7 +3026,7 @@ parseMethod:
         TreeProperty property;
         if (isGetter || isSetter) {
             if (Options::usePrivateMethods() && match(PRIVATENAME)) {
-                ident = m_token.m_data.ident;
+                ident = &m_parserArena.identifierArena().makePrivateIdentifier(m_vm, *m_token.m_data.ident);
                 if (isSetter) {
                     semanticFailIfTrue(classScope->declarePrivateSetter(*ident) & DeclarationResult::InvalidDuplicateDeclaration, "Declared private setter with an already used name");
                     type = static_cast<PropertyNode::Type>(type | PropertyNode::PrivateSetter);
