@@ -73,7 +73,6 @@
         (JSC::Parser<LexerType>::parseClass):
         (JSC::Parser<LexerType>::parseClassFieldInitializerSourceElements):
         (JSC::Parser<LexerType>::parseGetterSetter):
-        (JSC::Parser<LexerType>::parseMemberExpression):
         * parser/Parser.h:
         (JSC::Scope::declarePrivateSetter):
         (JSC::Scope::declarePrivateGetter):
