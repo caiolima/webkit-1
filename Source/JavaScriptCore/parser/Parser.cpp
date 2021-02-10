@@ -4484,11 +4484,11 @@ template <class TreeBuilder> TreeProperty Parser<LexerType>::parseGetterSetter(T
     } else if (type & PropertyNode::PrivateSetter) {
         failIfFalse(match(OPENPAREN), "Expected a parameter list for private setter definition");
         SetForScope<SourceParseMode> innerParseMode(m_parseMode, SourceParseMode::SetterMode);
-        failIfFalse((parseFunctionInfo(context, FunctionNameRequirements::Unnamed, false, constructorKind, SuperBinding::Needed, getterOrSetterStartOffset, info, FunctionDefinitionType::Method)), "Cannot parse setter definition");
+        failIfFalse((parseFunctionInfo(context, FunctionNameRequirements::Unnamed, false, constructorKind, SuperBinding::Needed, getterOrSetterStartOffset, info, FunctionDefinitionType::Method)), "Cannot parse private setter definition");
     } else if (type & PropertyNode::PrivateGetter) {
         failIfFalse(match(OPENPAREN), "Expected a parameter list for private getter definition");
         SetForScope<SourceParseMode> innerParseMode(m_parseMode, SourceParseMode::GetterMode);
-        failIfFalse((parseFunctionInfo(context, FunctionNameRequirements::Unnamed, false, constructorKind, SuperBinding::Needed, getterOrSetterStartOffset, info, FunctionDefinitionType::Method)), "Cannot parse getter definition");
+        failIfFalse((parseFunctionInfo(context, FunctionNameRequirements::Unnamed, false, constructorKind, SuperBinding::Needed, getterOrSetterStartOffset, info, FunctionDefinitionType::Method)), "Cannot parse private getter definition");
     }
 
     if (stringPropertyName)

@@ -107,7 +107,7 @@ void VariableEnvironment::markVariableAsExported(const RefPtr<UniquedStringImpl>
 bool VariableEnvironment::declarePrivateSetter(const RefPtr<UniquedStringImpl>& identifier)
 {
     if (!m_rareData)
-        m_rareData = std::make_unique<VariableEnvironment::RareData>();
+        m_rareData = WTF::makeUnique<VariableEnvironment::RareData>();
 
     auto findResult = m_rareData->m_privateNames.find(identifier);
 
@@ -155,7 +155,7 @@ bool VariableEnvironment::declarePrivateSetter(const RefPtr<UniquedStringImpl>& 
 bool VariableEnvironment::declarePrivateGetter(const RefPtr<UniquedStringImpl>& identifier)
 {
     if (!m_rareData)
-        m_rareData = std::make_unique<VariableEnvironment::RareData>();
+        m_rareData = WTF::makeUnique<VariableEnvironment::RareData>();
 
     auto findResult = m_rareData->m_privateNames.find(identifier);
 
