@@ -17,9 +17,6 @@
         path on `get_by_id_direct` to access the property, and also to allow
         constant folding of accessors on DFG/FTL, since acessors objects are
         going to be constant once created.
-        In addition to private accessors, we are also moving private fields
-        and private methods to use private identifier as their name, avoiding
-        future issues if we ever allow identifiers to start with `#`.
 
         For reference, we have the following bytecode for a private getter
         access:
@@ -41,7 +38,7 @@
         new_func_exp       dst:loc13, scope:loc4, functionDecl:"get #m() {...}"
         put_by_id          base:loc13, property:@homeObject, value:loc11, flags:Strict
         put_by_id          base:loc12, property:@get, value:loc13, flags:IsDirect|Strict
-        put_to_scope       scope:loc4, var:PrivateName.#m, value:loc12 // loc4 is the class lexical scope
+        put_to_scope       scope:loc4, var:#m, value:loc12 // loc4 is the class lexical scope
         ...
 
         ```
@@ -96,6 +93,8 @@
         (JSC::PrivateNameEntry::isPrivateMethodOrAcessor const):
         (JSC::VariableEnvironment::declarePrivateSetter):
         (JSC::VariableEnvironment::declarePrivateGetter):
+        * runtime/ExceptionHelpers.cpp:
+        (JSC::createPrivateMethodAccessError):
 
 2021-02-10  Saam Barati  <sbarati@apple.com>
 

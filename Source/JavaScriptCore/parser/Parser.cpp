@@ -2999,13 +2999,14 @@ parseMethod:
             break;
         case PRIVATENAME: {
             ASSERT(Options::usePrivateClassFields());
-            ident = &m_parserArena.identifierArena().makePrivateIdentifier(m_vm, *m_token.m_data.ident);
+            ident = m_token.m_data.ident;
             if (!Options::usePrivateStaticClassFields())
                 failIfTrue(tag == ClassElementTag::Static, "Static class element cannot be private");
             failIfTrue(isGetter || isSetter, "Cannot parse class method with private name");
             ASSERT(ident);
             next();
             if (Options::usePrivateMethods() && match(OPENPAREN)) {
+                semanticFailIfTrue(tag == ClassElementTag::Static, "Cannot declare a static private method");
                 semanticFailIfTrue(classScope->declarePrivateMethod(*ident) & DeclarationResult::InvalidDuplicateDeclaration, "Cannot declare private method twice");
                 declaresPrivateMethod = true;
                 type = static_cast<PropertyNode::Type>(type | PropertyNode::PrivateMethod);
@@ -3026,7 +3027,7 @@ parseMethod:
         TreeProperty property;
         if (isGetter || isSetter) {
             if (Options::usePrivateMethods() && match(PRIVATENAME)) {
-                ident = &m_parserArena.identifierArena().makePrivateIdentifier(m_vm, *m_token.m_data.ident);
+                ident = m_token.m_data.ident;
                 if (isSetter) {
                     semanticFailIfTrue(classScope->declarePrivateSetter(*ident) & DeclarationResult::InvalidDuplicateDeclaration, "Declared private setter with an already used name");
                     type = static_cast<PropertyNode::Type>(type | PropertyNode::PrivateSetter);
@@ -3166,7 +3167,7 @@ template <class TreeBuilder> TreeSourceElements Parser<LexerType>::parseClassFie
             switch (m_token.m_type) {
             case PRIVATENAME:
                 type = DefineFieldNode::Type::PrivateName;
-                ident = &m_parserArena.identifierArena().makePrivateIdentifier(m_vm, *m_token.m_data.ident);
+                ident = m_token.m_data.ident;
                 ASSERT(ident);
                 next();
                 break;
@@ -4444,10 +4445,7 @@ template <class TreeBuilder> TreeProperty Parser<LexerType>::parseGetterSetter(T
 
     bool matchesPrivateName = match(PRIVATENAME);
     if (matchSpecIdentifier() || match(STRING) || (Options::usePrivateMethods() && matchesPrivateName) || m_token.m_type & KeywordTokenFlag) {
-        if (matchesPrivateName)
-            stringPropertyName = &m_parserArena.identifierArena().makePrivateIdentifier(m_vm, *m_token.m_data.ident);
-        else
-            stringPropertyName = m_token.m_data.ident;
+        stringPropertyName = m_token.m_data.ident;
         semanticFailIfTrue(tag == ClassElementTag::Static && *stringPropertyName == m_vm.propertyNames->prototype,
             "Cannot declare a static method named 'prototype'");
         semanticFailIfTrue(tag == ClassElementTag::Instance && *stringPropertyName == m_vm.propertyNames->constructor,
@@ -5214,7 +5212,6 @@ template <class TreeBuilder> TreeExpression Parser<LexerType>::parseMemberExpres
                 const Identifier* ident = m_token.m_data.ident;
                 auto type = DotType::Name;
                 if (match(PRIVATENAME)) {
-                    ident = &m_parserArena.identifierArena().makePrivateIdentifier(m_vm, *ident);
                     ASSERT(ident);
                     failIfTrue(baseIsSuper, "Cannot access private names from super");
                     if (UNLIKELY(currentScope()->evalContextType() == EvalContextType::InstanceFieldEvalContext))

@@ -13,6 +13,7 @@
         * stress/private-names-available-on-eval-during-field-initialization.js: Copied from JSTests/stress/private-names-available-on-direct-eval.js.
         * stress/private-setter-brand-check.js: Added.
         * stress/private-setter-inner-class.js: Added.
+        * test262/config.yaml:
 
 2021-02-09  Yusuke Suzuki  <ysuzuki@apple.com>
 
