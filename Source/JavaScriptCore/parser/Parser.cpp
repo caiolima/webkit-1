@@ -4459,10 +4459,8 @@ template <class TreeBuilder> TreeProperty Parser<LexerType>::parseGetterSetter(T
         semanticFailIfTrue(tag == ClassElementTag::Instance && *stringPropertyName == m_vm.propertyNames->constructor,
             "Cannot declare a getter or setter named 'constructor'");
 
-        if (match(PRIVATENAME)) {
+        if (match(PRIVATENAME))
             semanticFailIfTrue(tag == ClassElementTag::No, "Cannot declare a private setter or getter outside a class");
-            semanticFailIfTrue(tag == ClassElementTag::Static, "Cannot declare a private setter or getter as static");
-        }
         next();
     } else if (match(DOUBLE) || match(INTEGER)) {
         numericPropertyName = m_token.m_data.doubleValue;
