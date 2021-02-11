@@ -2881,6 +2881,7 @@ template <class TreeBuilder> TreeClassExpression Parser<LexerType>::parseClass(T
     classScope->setStrictMode();
     bool declaresPrivateMethod = false;
     bool declaresPrivateAccessor = false;
+    bool declaresStaticPrivateMethodOrAccessor = false;
     next();
 
     ASSERT_WITH_MESSAGE(requirements != FunctionNameRequirements::Unnamed, "Currently, there is no caller that uses FunctionNameRequirements::Unnamed for class syntax.");
@@ -3010,7 +3011,11 @@ parseMethod:
                 semanticFailIfTrue(classScope->declarePrivateMethod(*ident, tag) & DeclarationResult::InvalidDuplicateDeclaration, "Cannot declare private method twice");
                 semanticFailIfTrue(tag == ClassElementTag::Static && *ident == propertyNames.constructorPrivateField, "Cannot declare a static private method named 'constructor'");
 
-                declaresPrivateMethodOrAccessor = true;
+                if (tag == ClassElementTag::Static)
+                    declaresStaticPrivateMethodOrAccessor = true;
+                else
+                    declaresPrivateMethodOrAccessor = true;
+
                 type = static_cast<PropertyNode::Type>(type | PropertyNode::PrivateMethod);
                 break;
             }
@@ -3033,20 +3038,24 @@ parseMethod:
                 if (isSetter) {
                     auto declarationResult = classScope->declarePrivateSetter(*ident, tag);
                     semanticFailIfTrue(declarationResult & DeclarationResult::InvalidDuplicateDeclaration, "Declared private setter with an already used name");
-                    if (tag == ClassElementTag::Static)
+                    if (tag == ClassElementTag::Static) {
                         semanticFailIfTrue(declarationResult & DeclarationResult::InvalidPrivateStaticNonStatic, "Cannot declare a private static setter if there is a non-static private getter with used name");
-                    else
+                        declaresStaticPrivateMethodOrAccessor = true;
+                    } else {
                         semanticFailIfTrue(declarationResult & DeclarationResult::InvalidPrivateStaticNonStatic, "Cannot declare a private non-static setter if there is a static private getter with used name");
-                    declaresPrivateAccessor = true;
+                        declaresPrivateAccessor = true;
+                    }
                     type = static_cast<PropertyNode::Type>(type | PropertyNode::PrivateSetter);
                 } else {
                     auto declarationResult = classScope->declarePrivateGetter(*ident, tag);
                     semanticFailIfTrue(declarationResult & DeclarationResult::InvalidDuplicateDeclaration, "Declared private getter with an already used name");
-                    if (tag == ClassElementTag::Static)
+                    if (tag == ClassElementTag::Static) {
                         semanticFailIfTrue(declarationResult & DeclarationResult::InvalidPrivateStaticNonStatic, "Cannot declare a private static getter if there is a non-static private setter with used name");
-                    else
+                        declaresStaticPrivateMethodOrAccessor = true;
+                    } else {
                         semanticFailIfTrue(declarationResult & DeclarationResult::InvalidPrivateStaticNonStatic, "Cannot declare a private non-static getter if there is a static private setter with used name");
-                    declaresPrivateAccessor = true;
+                        declaresPrivateAccessor = true;
+                    }
                     type = static_cast<PropertyNode::Type>(type | PropertyNode::PrivateGetter);
                 }
             } else {
@@ -3137,6 +3146,14 @@ parseMethod:
     if constexpr (std::is_same_v<TreeBuilder, ASTBuilder>) {
         if (classElements)
             classElements->setHasPrivateAccessors(declaresPrivateAccessor);
+    }
+
+    if (declaresStaticPrivateMethodOrAccessor) {
+        Identifier privateBrandIdentifier = m_vm.propertyNames->builtinNames().privateBrandPrivateName();
+        DeclarationResultMask declarationResult = classScope->declareLexicalVariable(&privateBrandIdentifier, true);
+        ASSERT_UNUSED(declarationResult, declarationResult == DeclarationResult::Valid);
+        classScope->useVariable(&privateBrandIdentifier, false);
+        classScope->addClosedVariableCandidateUnconditionally(privateBrandIdentifier.impl());
     }
 
     if (Options::usePrivateClassFields()) {
