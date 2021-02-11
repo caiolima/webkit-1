@@ -2879,7 +2879,7 @@ template <class TreeBuilder> TreeClassExpression Parser<LexerType>::parseClass(T
     classScope->setIsLexicalScope();
     classScope->preventVarDeclarations();
     classScope->setStrictMode();
-    bool declaresPrivateMethod = false;
+    bool declaresPrivateMethodOrAccessor = false;
     next();
 
     ASSERT_WITH_MESSAGE(requirements != FunctionNameRequirements::Unnamed, "Currently, there is no caller that uses FunctionNameRequirements::Unnamed for class syntax.");
@@ -3008,7 +3008,7 @@ parseMethod:
             if (Options::usePrivateMethods() && match(OPENPAREN)) {
                 semanticFailIfTrue(tag == ClassElementTag::Static, "Cannot declare a static private method");
                 semanticFailIfTrue(classScope->declarePrivateMethod(*ident) & DeclarationResult::InvalidDuplicateDeclaration, "Cannot declare private method twice");
-                declaresPrivateMethod = true;
+                declaresPrivateMethodOrAccessor = true;
                 type = static_cast<PropertyNode::Type>(type | PropertyNode::PrivateMethod);
                 break;
             }
@@ -3030,9 +3030,11 @@ parseMethod:
                 ident = m_token.m_data.ident;
                 if (isSetter) {
                     semanticFailIfTrue(classScope->declarePrivateSetter(*ident) & DeclarationResult::InvalidDuplicateDeclaration, "Declared private setter with an already used name");
+                    declaresPrivateMethodOrAccessor = true;
                     type = static_cast<PropertyNode::Type>(type | PropertyNode::PrivateSetter);
                 } else {
                     semanticFailIfTrue(classScope->declarePrivateGetter(*ident) & DeclarationResult::InvalidDuplicateDeclaration, "Declared private getter with an already used name");
+                    declaresPrivateMethodOrAccessor = true;
                     type = static_cast<PropertyNode::Type>(type | PropertyNode::PrivateGetter);
                 }
             } else {
@@ -3112,7 +3114,7 @@ parseMethod:
     info.endOffset = tokenLocation().endOffset - 1;
     consumeOrFail(CLOSEBRACE, "Expected a closing '}' after a class body");
 
-    if (declaresPrivateMethod) {
+    if (declaresPrivateMethodOrAccessor) {
         Identifier privateBrandIdentifier = m_vm.propertyNames->builtinNames().privateBrandPrivateName();
         DeclarationResultMask declarationResult = classScope->declareLexicalVariable(&privateBrandIdentifier, true);
         ASSERT_UNUSED(declarationResult, declarationResult == DeclarationResult::Valid);
