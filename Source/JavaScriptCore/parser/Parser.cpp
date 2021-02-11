@@ -3009,7 +3009,7 @@ parseMethod:
             if (Options::usePrivateMethods() && match(OPENPAREN)) {
                 semanticFailIfTrue(tag == ClassElementTag::Static, "Cannot declare a static private method");
                 semanticFailIfTrue(classScope->declarePrivateMethod(*ident) & DeclarationResult::InvalidDuplicateDeclaration, "Cannot declare private method twice");
-                declaresPrivateMethod = true;
+                declaresPrivateMethodOrAccessor = true;
                 type = static_cast<PropertyNode::Type>(type | PropertyNode::PrivateMethod);
                 break;
             }
