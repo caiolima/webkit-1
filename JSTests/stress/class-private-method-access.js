@@ -1,4 +1,4 @@
-//@ run("--useClassFields=true --usePrivateMethods=true")
+//@ requireOptions("--usePrivateMethods=true")
 
 function assert(a, e) {
     if (a !== e)

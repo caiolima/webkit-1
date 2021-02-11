@@ -206,12 +206,12 @@ public:
     ALWAYS_INLINE void usePrivateName(const Identifier& identifier) { usePrivateName(identifier.impl()); }
 
     bool declarePrivateMethod(const Identifier& identifier) { return declarePrivateMethod(identifier.impl()); }
-    bool declarePrivateMethod(const RefPtr<UniquedStringImpl>& identifier);
+    bool declarePrivateMethod(const RefPtr<UniquedStringImpl>& identifier, PrivateNameEntry::Traits addionalTraits = PrivateNameEntry::Traits::None);
 
     PrivateDeclarationResult declarePrivateAccessor(const RefPtr<UniquedStringImpl>&, PrivateNameEntry::Traits accessorTraits, PrivateNameEntry::Traits modifierTraits);
     
     bool declareStaticPrivateMethod(const Identifier& identifier) {
-        return declarePrivateName(identifier.impl(), static_cast<PrivateNameEntry::Traits>(PrivateNameEntry::Traits::IsMethod | PrivateNameEntry::Traits::IsStatic));
+        return declarePrivateMethod(identifier.impl(), static_cast<PrivateNameEntry::Traits>(PrivateNameEntry::Traits::IsMethod | PrivateNameEntry::Traits::IsStatic));
     }
 
     enum class PrivateDeclarationResult {
@@ -267,26 +267,26 @@ public:
         return &m_rareData->m_privateNames;
     }
 
-    ALWAYS_INLINE bool hasPrivateMethodOrAccessor() const
-    {
-        if (!m_rareData)
-            return false;
-
-        for (auto entry : privateNames()) {
-            if (entry.value.isPrivateMethodOrAcessor())
-                return true;
-        }
-
-        return false;
-    }
-    
-    ALWAYS_INLINE bool hasInstancePrivateAccess() const
+    ALWAYS_INLINE bool hasStaticPrivateMethodOrAccessor() const
     {
         if (!m_rareData)
             return false;
         
         for (auto entry : privateNames()) {
-            if (entry.value.isPrivateAccess() && !entry.value.isStatic())
+            if (entry.value.isPrivateMethodOrAcessor() && entry.value.isStatic())
+                return true;
+        }
+        
+        return false;
+    }
+    
+    ALWAYS_INLINE bool hasInstancePrivateMethodOrAccessor() const
+    {
+        if (!m_rareData)
+            return false;
+        
+        for (auto entry : privateNames()) {
+            if (entry.value.isPrivateMethodOrAcessor() && !entry.value.isStatic())
                 return true;
         }
         

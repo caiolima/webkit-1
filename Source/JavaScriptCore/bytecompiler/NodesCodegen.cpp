@@ -851,9 +851,6 @@ RegisterID* PropertyListNode::emitBytecode(BytecodeGenerator& generator, Registe
         }
     }
 
-    if (constructorNeedsPrivateBrand)
-        generator.emitInstallPrivateClassBrand(dstOrConstructor, position(), position(), position());
-
     return dstOrConstructor;
 }
 
@@ -1030,7 +1027,7 @@ RegisterID* BaseDotNode::emitGetPropertyValue(BytecodeGenerator& generator, Regi
             Variable var = generator.variable(identifierName);
             RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
 
-            RefPtr<RegisterID> privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get(), privateNameEntry->isStatic());
+            RefPtr<RegisterID> privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get(), privateNameEntry.isStatic());
             generator.emitCheckPrivateBrand(base, privateBrandSymbol.get());
 
             return generator.emitGetFromScope(dst, scope.get(), var, ThrowIfNotFound);
@@ -1040,7 +1037,7 @@ RegisterID* BaseDotNode::emitGetPropertyValue(BytecodeGenerator& generator, Regi
             Variable var = generator.variable(identifierName);
             RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
 
-            RefPtr<RegisterID> privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get(), privateNameEntry->isStatic());
+            RefPtr<RegisterID> privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get(), privateNameEntry.isStatic());
             generator.emitCheckPrivateBrand(base, privateBrandSymbol.get());
 
             RefPtr<RegisterID> getterSetterObj = generator.emitGetFromScope(generator.newTemporary(), scope.get(), var, ThrowIfNotFound);
@@ -1055,7 +1052,7 @@ RegisterID* BaseDotNode::emitGetPropertyValue(BytecodeGenerator& generator, Regi
             Variable var = generator.variable(identifierName);
             RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
 
-            RefPtr<RegisterID> privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get(), privateNameEntry->isStatic());
+            RefPtr<RegisterID> privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get(), privateNameEntry.isStatic());
             generator.emitCheckPrivateBrand(base, privateBrandSymbol.get());
             generator.emitThrowTypeError("Trying to access an undefined private getter");
             return dst;
@@ -1095,7 +1092,7 @@ RegisterID* BaseDotNode::emitPutProperty(BytecodeGenerator& generator, RegisterI
             Variable var = generator.variable(identifierName);
             RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
 
-            RefPtr<RegisterID> privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get(), privateNameEntry->isStatic());
+            RefPtr<RegisterID> privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get(), privateNameEntry.isStatic());
             generator.emitCheckPrivateBrand(base, privateBrandSymbol.get());
 
             RefPtr<RegisterID> getterSetterObj = generator.emitGetFromScope(generator.newTemporary(), scope.get(), var, ThrowIfNotFound);
@@ -1112,7 +1109,7 @@ RegisterID* BaseDotNode::emitPutProperty(BytecodeGenerator& generator, RegisterI
             Variable var = generator.variable(identifierName);
             RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
 
-            RefPtr<RegisterID> privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get(), privateNameEntry->isStatic());
+            RefPtr<RegisterID> privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get(), privateNameEntry.isStatic());
             generator.emitCheckPrivateBrand(base, privateBrandSymbol.get());
 
             generator.emitThrowTypeError("Trying to access an undefined private setter");
@@ -5200,7 +5197,8 @@ RegisterID* ClassExprNode::emitBytecode(BytecodeGenerator& generator, RegisterID
         generator.pushLexicalScope(this, BytecodeGenerator::TDZCheckOptimization::Optimize, BytecodeGenerator::NestedScopeType::IsNested);
 
     bool hasPrivateNames = !!m_lexicalVariables.privateNamesSize();
-    bool shouldEmitPrivateBrand = m_lexicalVariables.hasInstancePrivateAccess();
+    bool shouldEmitPrivateBrand = m_lexicalVariables.hasInstancePrivateMethodOrAccessor();
+    bool shouldInstallBrandOnConstructor = m_lexicalVariables.hasStaticPrivateMethodOrAccessor();
     if (hasPrivateNames)
         generator.pushPrivateAccessNames(m_lexicalVariables.privateNameEnvironment());
     if (shouldEmitPrivateBrand)
@@ -5291,6 +5289,9 @@ RegisterID* ClassExprNode::emitBytecode(BytecodeGenerator& generator, RegisterID
         RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, classNameVar);
         generator.emitPutToScope(scope.get(), classNameVar, constructor.get(), ThrowIfNotFound, InitializationMode::Initialization);
     }
+
+    if(shouldInstallBrandOnConstructor)
+        generator.emitInstallPrivateClassBrand(constructor.get());
 
     if (!staticFieldLocations.isEmpty()) {
         RefPtr<RegisterID> staticFieldInitializer = generator.emitNewClassFieldInitializerFunction(generator.newTemporary(), WTFMove(staticFieldLocations), m_classHeritage);

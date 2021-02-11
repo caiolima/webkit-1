@@ -3031,7 +3031,7 @@ parseMethod:
             if (Options::usePrivateMethods() && match(PRIVATENAME)) {
                 ident = m_token.m_data.ident;
                 if (isSetter) {
-                    auto declarationResult = classScope->declarePrivateSetter(m_vm, *ident, tag);
+                    auto declarationResult = classScope->declarePrivateSetter(*ident, tag);
                     semanticFailIfTrue(declarationResult & DeclarationResult::InvalidDuplicateDeclaration, "Declared private setter with an already used name");
                     if (tag == ClassElementTag::Static)
                         semanticFailIfTrue(declarationResult & DeclarationResult::InvalidPrivateStaticNonStatic, "Cannot declare a private static setter if there is a non-static private getter with used name");
@@ -3040,7 +3040,7 @@ parseMethod:
                     declaresPrivateAccessor = true;
                     type = static_cast<PropertyNode::Type>(type | PropertyNode::PrivateSetter);
                 } else {
-                    auto declarationResult = classScope->declarePrivateGetter(m_vm, *ident, tag);
+                    auto declarationResult = classScope->declarePrivateGetter(*ident, tag);
                     semanticFailIfTrue(declarationResult & DeclarationResult::InvalidDuplicateDeclaration, "Declared private getter with an already used name");
                     if (tag == ClassElementTag::Static)
                         semanticFailIfTrue(declarationResult & DeclarationResult::InvalidPrivateStaticNonStatic, "Cannot declare a private static getter if there is a non-static private setter with used name");

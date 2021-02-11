@@ -182,7 +182,7 @@ PrivateDeclarationResult VariableEnvironment::declarePrivateGetter(const RefPtr<
     return declarePrivateAccessor(identifier, PrivateNameEntry::Traits::IsGetter, modifierTraits);
 }
 
-bool VariableEnvironment::declarePrivateMethod(const RefPtr<UniquedStringImpl>& identifier)
+bool VariableEnvironment::declarePrivateMethod(const RefPtr<UniquedStringImpl>& identifier, PrivateNameEntry::Traits addionalTraits)
 {
     if (!m_rareData)
         m_rareData = makeUnique<VariableEnvironment::RareData>();
@@ -190,7 +190,7 @@ bool VariableEnvironment::declarePrivateMethod(const RefPtr<UniquedStringImpl>& 
     auto findResult = m_rareData->m_privateNames.find(identifier);
 
     if (findResult == m_rareData->m_privateNames.end()) {
-        PrivateNameEntry meta(PrivateNameEntry::Traits::IsDeclared | PrivateNameEntry::Traits::IsMethod);
+        PrivateNameEntry meta(PrivateNameEntry::Traits::IsDeclared | PrivateNameEntry::Traits::IsMethod | addionalTraits);
 
         auto entry = VariableEnvironmentEntry();
         entry.setIsPrivateMethod();
@@ -212,7 +212,7 @@ bool VariableEnvironment::declarePrivateMethod(const RefPtr<UniquedStringImpl>& 
     m_map.add(identifier, entry);
 
     // it was previously used, mark it as declared.
-    PrivateNameEntry meta(PrivateNameEntry::Traits::IsDeclared | PrivateNameEntry::Traits::IsUsed | PrivateNameEntry::Traits::IsMethod);
+    PrivateNameEntry meta(PrivateNameEntry::Traits::IsDeclared | PrivateNameEntry::Traits::IsUsed | PrivateNameEntry::Traits::IsMethod | addionalTraits);
     auto addResult = m_rareData->m_privateNames.set(identifier, meta);
     return !addResult.isNewEntry;
 }
