@@ -975,7 +975,8 @@ RegisterID* BaseDotNode::emitGetPropertyValue(BytecodeGenerator& generator, Regi
 {
     if (isPrivateMember()) {
         auto identifierName = identifier();
-        if (generator.isPrivateMethod(identifierName)) {
+        auto privateTraits = generator.getPrivateTraits(identifierName);
+        if (privateTraits.isMethod()) {
             Variable var = generator.variable(identifierName);
             RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
 
@@ -985,7 +986,7 @@ RegisterID* BaseDotNode::emitGetPropertyValue(BytecodeGenerator& generator, Regi
             return generator.emitGetFromScope(dst, scope.get(), var, ThrowIfNotFound);
         }
 
-        if (generator.isPrivateGetter(identifierName)) {
+        if (privateTraits.isGetter()) {
             Variable var = generator.variable(identifierName);
             RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
 
@@ -999,7 +1000,7 @@ RegisterID* BaseDotNode::emitGetPropertyValue(BytecodeGenerator& generator, Regi
             return generator.emitCall(dst, getterFunction.get(), NoExpectedFunction, args, m_position, m_position, m_position, DebuggableCall::Yes);
         }
 
-        if (generator.isPrivateSetter(identifierName)) {
+        if (privateTraits.isSetter()) {
             // We need to perform brand check to follow the spec
             Variable var = generator.variable(identifierName);
             RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
@@ -1010,6 +1011,7 @@ RegisterID* BaseDotNode::emitGetPropertyValue(BytecodeGenerator& generator, Regi
             return dst;
         }
 
+        ASSERT(privateTraits.isField());
         Variable var = generator.variable(m_ident);
         ASSERT_WITH_MESSAGE(!var.local(), "Private Field names must be stored in captured variables");
 
@@ -1038,7 +1040,8 @@ RegisterID* BaseDotNode::emitPutProperty(BytecodeGenerator& generator, RegisterI
 {
     if (isPrivateMember()) {
         auto identifierName = identifier();
-        if (generator.isPrivateSetter(identifierName)) {
+        auto privateTraits = generator.getPrivateTraits(identifierName);
+        if (privateTraits.isSetter()) {
             Variable var = generator.variable(identifierName);
             RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
 
@@ -1055,8 +1058,7 @@ RegisterID* BaseDotNode::emitPutProperty(BytecodeGenerator& generator, RegisterI
             return value;
         }
 
-        bool isPrivateGetter = generator.isPrivateGetter(identifierName);
-        if (isPrivateGetter || generator.isPrivateMethod(identifierName)) {
+        if (privateTraits.isGetter() || privateTraits.isMethod()) {
             Variable var = generator.variable(identifierName);
             RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
 
@@ -1066,6 +1068,7 @@ RegisterID* BaseDotNode::emitPutProperty(BytecodeGenerator& generator, RegisterI
             generator.emitThrowTypeError("Trying to access a not defined private setter");
         }
 
+        ASSERT(privateTraits.isField());
         Variable var = generator.variable(m_ident);
         ASSERT_WITH_MESSAGE(!var.local(), "Private Field names must be stored in captured variables");
 
@@ -2386,17 +2389,78 @@ RegisterID* PostfixNode::emitDot(BytecodeGenerator& generator, RegisterID* dst)
 
     if (dotAccessor->isPrivateMember()) {
         ASSERT(!baseIsSuper);
+        auto privateTraits = generator.getPrivateTraits(ident);
+
+        if (privateTraits.isField()) {
+            Variable var = generator.variable(ident);
+            RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
+            RefPtr<RegisterID> privateName = generator.newTemporary();
+            generator.emitGetFromScope(privateName.get(), scope.get(), var, DoNotThrowIfNotFound);
+
+            RefPtr<RegisterID> value = generator.emitGetPrivateName(generator.newTemporary(), base.get(), privateName.get());
+            RefPtr<RegisterID> oldValue = emitPostIncOrDec(generator, generator.tempDestination(dst), value.get(), m_operator);
+            generator.emitExpressionInfo(divot(), divotStart(), divotEnd());
+            generator.emitPrivateFieldPut(base.get(), privateName.get(), value.get());
+            generator.emitProfileType(value.get(), divotStart(), divotEnd());
+            return generator.move(dst, oldValue.get());
+        }
+
+        if (privateTraits.isMethod()) {
+            Variable var = generator.variable(ident);
+            RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
+
+            RegisterID* privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get());
+            generator.emitCheckPrivateBrand(base.get(), privateBrandSymbol);
+
+            // Do we really need this? I think the result is always NaN and not observable
+            RefPtr<RegisterID> value = generator.emitGetFromScope(generator.newTemporary(), scope.get(), var, ThrowIfNotFound);
+            RefPtr<RegisterID> oldValue = emitPostIncOrDec(generator, generator.tempDestination(dst), value.get(), m_operator);
+            generator.emitExpressionInfo(divot(), divotStart(), divotEnd());
+            generator.emitThrowTypeError("Trying to access a not defined private setter");
+            return dst;
+        }
+
         Variable var = generator.variable(ident);
         RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
-        RefPtr<RegisterID> privateName = generator.newTemporary();
-        generator.emitGetFromScope(privateName.get(), scope.get(), var, DoNotThrowIfNotFound);
 
-        RefPtr<RegisterID> value = generator.emitGetPrivateName(generator.newTemporary(), base.get(), privateName.get());
+        RegisterID* privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get());
+        generator.emitCheckPrivateBrand(base.get(), privateBrandSymbol);
+
+        RefPtr<RegisterID> value;
+        if (privateTraits.isGetter()) {
+            RefPtr<RegisterID> getterSetterObj = generator.emitGetFromScope(generator.newTemporary(), scope.get(), var, ThrowIfNotFound);
+            RefPtr<RegisterID> getterFunction = generator.emitDirectGetById(generator.newTemporary(), getterSetterObj.get(), generator.propertyNames().builtinNames().getPrivateName());
+            CallArguments args(generator, nullptr);
+            generator.move(args.thisRegister(), base.get());
+            value = generator.emitCall(generator.newTemporary(), getterFunction.get(), NoExpectedFunction, args, m_position, m_position, m_position, DebuggableCall::Yes);
+        } else {
+            generator.emitThrowTypeError("Trying to access a not defined private getter");
+            return dst;
+        }
+
         RefPtr<RegisterID> oldValue = emitPostIncOrDec(generator, generator.tempDestination(dst), value.get(), m_operator);
         generator.emitExpressionInfo(divot(), divotStart(), divotEnd());
-        generator.emitPrivateFieldPut(base.get(), privateName.get(), value.get());
-        generator.emitProfileType(value.get(), divotStart(), divotEnd());
-        return generator.move(dst, oldValue.get());
+
+        if (privateTraits.isSetter()) {
+            // We need to perform brand check to follow the spec
+            Variable var = generator.variable(ident);
+            RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
+
+            RegisterID* privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get());
+            generator.emitCheckPrivateBrand(base.get(), privateBrandSymbol);
+
+            RefPtr<RegisterID> getterSetterObj = generator.emitGetFromScope(generator.newTemporary(), scope.get(), var, ThrowIfNotFound);
+            RefPtr<RegisterID> setterFunction = generator.emitDirectGetById(generator.newTemporary(), getterSetterObj.get(), generator.propertyNames().builtinNames().setPrivateName());
+            CallArguments args(generator, nullptr, 1);
+            generator.move(args.thisRegister(), base.get());
+            generator.move(args.argumentRegister(0), value.get());
+            generator.emitCall(generator.newTemporary(), setterFunction.get(), NoExpectedFunction, args, m_position, m_position, m_position, DebuggableCall::Yes);
+            generator.emitProfileType(value.get(), divotStart(), divotEnd());
+            return generator.move(dst, oldValue.get());
+        } 
+
+        generator.emitThrowTypeError("Trying to access a not defined private getter");
+        return dst;
     }
 
     RefPtr<RegisterID> value;
@@ -2624,18 +2688,78 @@ RegisterID* PrefixNode::emitDot(BytecodeGenerator& generator, RegisterID* dst)
     generator.emitExpressionInfo(dotAccessor->divot(), dotAccessor->divotStart(), dotAccessor->divotEnd());
     RegisterID* value;
     if (dotAccessor->isPrivateMember()) {
-        ASSERT(!baseNode->isSuperNode());
+        auto privateTraits = generator.getPrivateTraits(ident);
+        if (privateTraits.isField()) {
+            ASSERT(!baseNode->isSuperNode());
+            Variable var = generator.variable(ident);
+            RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
+            RefPtr<RegisterID> privateName = generator.newTemporary();
+            generator.emitGetFromScope(privateName.get(), scope.get(), var, DoNotThrowIfNotFound);
+
+            value = generator.emitGetPrivateName(propDst.get(), base.get(), privateName.get());
+            emitIncOrDec(generator, value, m_operator);
+            generator.emitExpressionInfo(divot(), divotStart(), divotEnd());
+            generator.emitPrivateFieldPut(base.get(), privateName.get(), value);
+            generator.emitProfileType(value, divotStart(), divotEnd());
+            return generator.move(dst, propDst.get());
+        }
+
+        if (privateTraits.isMethod()) {
+            Variable var = generator.variable(ident);
+            RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
+
+            RegisterID* privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get());
+            generator.emitCheckPrivateBrand(base.get(), privateBrandSymbol);
+
+            // OOPS: Do we need to emit get_from_scope and inc? Probably not
+            value = generator.emitGetFromScope(propDst.get(), scope.get(), var, ThrowIfNotFound);
+            emitIncOrDec(generator, value, m_operator);
+            generator.emitExpressionInfo(divot(), divotStart(), divotEnd());
+            generator.emitThrowTypeError("Trying to access a not defined private setter");
+            return dst;
+        }
+
         Variable var = generator.variable(ident);
         RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
-        RefPtr<RegisterID> privateName = generator.newTemporary();
-        generator.emitGetFromScope(privateName.get(), scope.get(), var, DoNotThrowIfNotFound);
 
-        value = generator.emitGetPrivateName(propDst.get(), base.get(), privateName.get());
+        RegisterID* privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get());
+        generator.emitCheckPrivateBrand(base.get(), privateBrandSymbol);
+
+        if (privateTraits.isGetter()) {
+            RefPtr<RegisterID> getterSetterObj = generator.emitGetFromScope(generator.newTemporary(), scope.get(), var, ThrowIfNotFound);
+            RefPtr<RegisterID> getterFunction = generator.emitDirectGetById(generator.newTemporary(), getterSetterObj.get(), generator.propertyNames().builtinNames().getPrivateName());
+            CallArguments args(generator, nullptr);
+            generator.move(args.thisRegister(), base.get());
+            value = generator.emitCall(propDst.get(), getterFunction.get(), NoExpectedFunction, args, m_position, m_position, m_position, DebuggableCall::Yes);
+        } else {
+            generator.emitThrowTypeError("Trying to access a not defined private getter");
+            return dst;
+        }
+
         emitIncOrDec(generator, value, m_operator);
         generator.emitExpressionInfo(divot(), divotStart(), divotEnd());
-        generator.emitPrivateFieldPut(base.get(), privateName.get(), value);
-        generator.emitProfileType(value, divotStart(), divotEnd());
-        return generator.move(dst, propDst.get());
+
+        if (privateTraits.isSetter()) {
+            // We need to perform brand check to follow the spec
+            Variable var = generator.variable(ident);
+            RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
+
+            RegisterID* privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get());
+            generator.emitCheckPrivateBrand(base.get(), privateBrandSymbol);
+
+            RefPtr<RegisterID> getterSetterObj = generator.emitGetFromScope(generator.newTemporary(), scope.get(), var, ThrowIfNotFound);
+            RefPtr<RegisterID> setterFunction = generator.emitDirectGetById(generator.newTemporary(), getterSetterObj.get(), generator.propertyNames().builtinNames().setPrivateName());
+            CallArguments args(generator, nullptr, 1);
+            generator.move(args.thisRegister(), base.get());
+            generator.move(args.argumentRegister(0), value);
+            generator.emitCall(generator.newTemporary(), setterFunction.get(), NoExpectedFunction, args, m_position, m_position, m_position, DebuggableCall::Yes);
+            generator.emitProfileType(value, divotStart(), divotEnd());
+            return generator.move(dst, propDst.get());
+        } 
+
+        generator.emitThrowTypeError("Trying to access a not defined private getter");
+        return dst;
+
     }
 
     RefPtr<RegisterID> thisValue;

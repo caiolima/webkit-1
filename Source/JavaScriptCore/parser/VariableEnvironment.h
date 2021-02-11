@@ -109,6 +109,7 @@ public:
     ALWAYS_INLINE bool isMethod() const { return m_bits & IsMethod; }
     ALWAYS_INLINE bool isSetter() const { return m_bits & IsSetter; }
     ALWAYS_INLINE bool isGetter() const { return m_bits & IsGetter; }
+    ALWAYS_INLINE bool isField() const { return !isPrivateMethodOrAcessor(); }
 
     bool isPrivateMethodOrAcessor() const { return isMethod() || isSetter() || isGetter(); }
 

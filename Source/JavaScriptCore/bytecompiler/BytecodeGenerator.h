@@ -1263,9 +1263,7 @@ namespace JSC {
             m_lastInstruction = prevLastInstruction;
         }
 
-        bool isPrivateMethod(const Identifier&);
-        bool isPrivateSetter(const Identifier&);
-        bool isPrivateGetter(const Identifier&);
+        PrivateNameEntry getPrivateTraits(const Identifier&);
 
         void pushPrivateAccessNames(const PrivateNameEnvironment*);
         void popPrivateAccessNames();
