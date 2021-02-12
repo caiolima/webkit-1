@@ -3169,10 +3169,7 @@ template <class TreeBuilder> TreeSourceElements Parser<LexerType>::parseClassFie
             switch (m_token.m_type) {
             case PRIVATENAME:
                 type = DefineFieldNode::Type::PrivateName;
-                ident = m_token.m_data.ident;
-                ASSERT(ident);
-                next();
-                break;
+                FALLTHROUGH;
             case STRING:
             case IDENT:
             namedKeyword:

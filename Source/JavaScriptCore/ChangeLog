@@ -1,4 +1,4 @@
-2021-02-10  Caio Lima  <ticaiolima@gmail.com>
+2021-02-12  Caio Lima  <ticaiolima@gmail.com>
 
         [ESNext] Implement private accessors
         https://bugs.webkit.org/show_bug.cgi?id=194435
@@ -60,14 +60,16 @@
 
         * bytecompiler/BytecodeGenerator.cpp:
         (JSC::BytecodeGenerator::instantiateLexicalVariables):
-        (JSC::BytecodeGenerator::isPrivateSetter):
-        (JSC::BytecodeGenerator::isPrivateGetter):
+        (JSC::BytecodeGenerator::getPrivateTraits):
+        (JSC::BytecodeGenerator::isPrivateMethod): Deleted.
         * bytecompiler/BytecodeGenerator.h:
         * bytecompiler/NodesCodegen.cpp:
         (JSC::PropertyListNode::emitBytecode):
         (JSC::PropertyListNode::emitPutConstantProperty):
         (JSC::BaseDotNode::emitGetPropertyValue):
         (JSC::BaseDotNode::emitPutProperty):
+        (JSC::PostfixNode::emitDot):
+        (JSC::PrefixNode::emitDot):
         * parser/Nodes.h:
         * parser/Parser.cpp:
         (JSC::Parser<LexerType>::parseClass):
@@ -76,9 +78,6 @@
         * parser/Parser.h:
         (JSC::Scope::declarePrivateSetter):
         (JSC::Scope::declarePrivateGetter):
-        * parser/ParserArena.cpp:
-        (JSC::IdentifierArena::makePrivateIdentifier):
-        * parser/ParserArena.h:
         * parser/VariableEnvironment.cpp:
         (JSC::VariableEnvironment::declarePrivateSetter):
         (JSC::VariableEnvironment::declarePrivateGetter):
@@ -89,6 +88,7 @@
         (JSC::VariableEnvironmentEntry::setIsPrivateGetter):
         (JSC::PrivateNameEntry::isSetter const):
         (JSC::PrivateNameEntry::isGetter const):
+        (JSC::PrivateNameEntry::isField const):
         (JSC::PrivateNameEntry::isPrivateMethodOrAcessor const):
         (JSC::VariableEnvironment::declarePrivateSetter):
         (JSC::VariableEnvironment::declarePrivateGetter):

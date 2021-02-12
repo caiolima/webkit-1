@@ -2994,13 +2994,10 @@ Optional<PrivateNameEnvironment> BytecodeGenerator::getAvailablePrivateAccessNam
     for (unsigned i = m_privateNamesStack.size(); i--; ) {
         auto& map = m_privateNamesStack[i];
         for (auto& entry : map)  {
-            if (entry.value.isPrivateMethodOrAcessor()) {
-                if (!excludedNames.contains(entry.key.get())) {
-                    result.add(entry.key, entry.value);
-                    excludedNames.add(entry.key.get());
-                }
-            } else
+            if (!excludedNames.contains(entry.key.get())) {
+                result.add(entry.key, entry.value);
                 excludedNames.add(entry.key.get());
+            }
         }
     }
 
