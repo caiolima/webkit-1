@@ -769,8 +769,8 @@ namespace JSC {
 
     class PropertyListNode final : public ExpressionNode {
     public:
-        PropertyListNode(const JSTokenLocation&, PropertyNode*, bool hasPrivateAccessors);
-        PropertyListNode(const JSTokenLocation&, PropertyNode*, PropertyListNode*, bool hasPrivateAccessors);
+        PropertyListNode(const JSTokenLocation&, PropertyNode*);
+        PropertyListNode(const JSTokenLocation&, PropertyNode*, PropertyListNode*);
 
         bool hasStaticallyNamedProperty(const Identifier& propName);
         bool isComputedClassField() const
@@ -786,6 +786,11 @@ namespace JSC {
         bool isStaticClassField() const
         {
             return m_node->isStaticClassField();
+        }
+
+        void setHasPrivateAccessors(bool hasPrivateAccessors)
+        {
+            m_hasPrivateAccessors = hasPrivateAccessors;
         }
 
         bool hasPrivateAccessors() const
@@ -809,7 +814,7 @@ namespace JSC {
 
         PropertyNode* m_node;
         PropertyListNode* m_next { nullptr };
-        bool m_hasPrivateAccessors;
+        bool m_hasPrivateAccessors { false };
     };
 
     class ObjectLiteralNode final : public ExpressionNode {

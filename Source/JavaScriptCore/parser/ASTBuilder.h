@@ -533,8 +533,8 @@ public:
     }
     PropertyNode* createProperty(ExpressionNode* propertyName, ExpressionNode* node, PropertyNode::Type type, SuperBinding superBinding, ClassElementTag tag) { return new (m_parserArena) PropertyNode(propertyName, node, type, superBinding, tag); }
     PropertyNode* createProperty(const Identifier* identifier, ExpressionNode* propertyName, ExpressionNode* node, PropertyNode::Type type, SuperBinding superBinding, ClassElementTag tag) { return new (m_parserArena) PropertyNode(*identifier, propertyName, node, type, superBinding, tag); }
-    PropertyListNode* createPropertyList(const JSTokenLocation& location, PropertyNode* property, bool hasPrivateAccessors) { return new (m_parserArena) PropertyListNode(location, property, hasPrivateAccessors); }
-    PropertyListNode* createPropertyList(const JSTokenLocation& location, PropertyNode* property, PropertyListNode* tail, bool hasPrivateAccessors) { return new (m_parserArena) PropertyListNode(location, property, tail, hasPrivateAccessors); }
+    PropertyListNode* createPropertyList(const JSTokenLocation& location, PropertyNode* property) { return new (m_parserArena) PropertyListNode(location, property); }
+    PropertyListNode* createPropertyList(const JSTokenLocation& location, PropertyNode* property, PropertyListNode* tail) { return new (m_parserArena) PropertyListNode(location, property, tail); }
 
     ElementNode* createElementList(int elisions, ExpressionNode* expr) { return new (m_parserArena) ElementNode(elisions, expr); }
     ElementNode* createElementList(ElementNode* elems, int elisions, ExpressionNode* expr) { return new (m_parserArena) ElementNode(elems, elisions, expr); }

@@ -236,8 +236,8 @@ public:
     {
         return Property(type);
     }
-    int createPropertyList(const JSTokenLocation&, Property, bool) { return PropertyListResult; }
-    int createPropertyList(const JSTokenLocation&, Property, int, bool) { return PropertyListResult; }
+    int createPropertyList(const JSTokenLocation&, Property) { return PropertyListResult; }
+    int createPropertyList(const JSTokenLocation&, Property, int) { return PropertyListResult; }
     int createElementList(int, int) { return ElementsListResult; }
     int createElementList(int, int, int) { return ElementsListResult; }
     int createElementList(int) { return ElementsListResult; }

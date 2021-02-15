@@ -3107,9 +3107,9 @@ parseMethod:
         }
 
         if (classElementsTail)
-            classElementsTail = context.createPropertyList(methodLocation, property, classElementsTail, declaresPrivateAccessor);
+            classElementsTail = context.createPropertyList(methodLocation, property, classElementsTail);
         else
-            classElements = classElementsTail = context.createPropertyList(methodLocation, property, declaresPrivateAccessor);
+            classElements = classElementsTail = context.createPropertyList(methodLocation, property);
     }
 
     info.endOffset = tokenLocation().endOffset - 1;
@@ -3121,6 +3121,11 @@ parseMethod:
         ASSERT_UNUSED(declarationResult, declarationResult == DeclarationResult::Valid);
         classScope->useVariable(&privateBrandIdentifier, false);
         classScope->addClosedVariableCandidateUnconditionally(privateBrandIdentifier.impl());
+    }
+
+    if constexpr (std::is_same_v<TreeBuilder, ASTBuilder>) {
+        if (classElements)
+            classElements->setHasPrivateAccessors(declaresPrivateAccessor);
     }
 
     if (Options::usePrivateClassFields()) {
@@ -4546,8 +4551,7 @@ template <class TreeBuilder> TreeExpression Parser<LexerType>::parseObjectLitera
 
     bool seenProtoSetter = context.isUnderscoreProtoSetter(property);
 
-    const bool declaresPrivateAccessor = false;
-    TreePropertyList propertyList = context.createPropertyList(location, property, declaresPrivateAccessor);
+    TreePropertyList propertyList = context.createPropertyList(location, property);
     TreePropertyList tail = propertyList;
     while (match(COMMA)) {
         next();
@@ -4561,8 +4565,7 @@ template <class TreeBuilder> TreeExpression Parser<LexerType>::parseObjectLitera
             semanticFailIfTrue(seenProtoSetter, "Attempted to redefine __proto__ property");
             seenProtoSetter = true;
         }
-        const bool declaresPrivateAccessor = false;
-        tail = context.createPropertyList(propertyLocation, property, tail, declaresPrivateAccessor);
+        tail = context.createPropertyList(propertyLocation, property, tail);
     }
 
     location = tokenLocation();
