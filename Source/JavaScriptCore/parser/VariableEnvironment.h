@@ -206,6 +206,8 @@ public:
     bool declarePrivateMethod(const Identifier& identifier) { return declarePrivateMethod(identifier.impl()); }
     bool declarePrivateMethod(const RefPtr<UniquedStringImpl>& identifier);
 
+    bool declarePrivateAccessor(const RefPtr<UniquedStringImpl>&, PrivateNameEntry::Traits);
+
     bool declarePrivateSetter(const Identifier& identifier) { return declarePrivateSetter(identifier.impl()); }
     bool declarePrivateSetter(const RefPtr<UniquedStringImpl>& identifier);
 

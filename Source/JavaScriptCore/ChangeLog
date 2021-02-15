@@ -61,6 +61,7 @@
         * bytecompiler/BytecodeGenerator.cpp:
         (JSC::BytecodeGenerator::instantiateLexicalVariables):
         (JSC::BytecodeGenerator::getPrivateTraits):
+        (JSC::BytecodeGenerator::getAvailablePrivateAccessNames):
         (JSC::BytecodeGenerator::isPrivateMethod): Deleted.
         * bytecompiler/BytecodeGenerator.h:
         * bytecompiler/NodesCodegen.cpp:
@@ -73,7 +74,6 @@
         * parser/Nodes.h:
         * parser/Parser.cpp:
         (JSC::Parser<LexerType>::parseClass):
-        (JSC::Parser<LexerType>::parseClassFieldInitializerSourceElements):
         (JSC::Parser<LexerType>::parseGetterSetter):
         * parser/Parser.h:
         (JSC::Scope::declarePrivateSetter):

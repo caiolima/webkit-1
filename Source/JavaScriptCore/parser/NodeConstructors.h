@@ -287,15 +287,17 @@ namespace JSC {
     {
     }
 
-    inline PropertyListNode::PropertyListNode(const JSTokenLocation& location, PropertyNode* node)
+    inline PropertyListNode::PropertyListNode(const JSTokenLocation& location, PropertyNode* node, bool hasPrivateAccessors)
         : ExpressionNode(location)
         , m_node(node)
+        , m_hasPrivateAccessors(hasPrivateAccessors)
     {
     }
 
-    inline PropertyListNode::PropertyListNode(const JSTokenLocation& location, PropertyNode* node, PropertyListNode* list)
+    inline PropertyListNode::PropertyListNode(const JSTokenLocation& location, PropertyNode* node, PropertyListNode* list, bool hasPrivateAccessors)
         : ExpressionNode(location)
         , m_node(node)
+          , m_hasPrivateAccessors(hasPrivateAccessors)
     {
         list->m_next = this;
     }

@@ -2879,7 +2879,8 @@ template <class TreeBuilder> TreeClassExpression Parser<LexerType>::parseClass(T
     classScope->setIsLexicalScope();
     classScope->preventVarDeclarations();
     classScope->setStrictMode();
-    bool declaresPrivateMethodOrAccessor = false;
+    bool declaresPrivateMethod = false;
+    bool declaresPrivateAccessor = false;
     next();
 
     ASSERT_WITH_MESSAGE(requirements != FunctionNameRequirements::Unnamed, "Currently, there is no caller that uses FunctionNameRequirements::Unnamed for class syntax.");
@@ -3008,7 +3009,7 @@ parseMethod:
             if (Options::usePrivateMethods() && match(OPENPAREN)) {
                 semanticFailIfTrue(tag == ClassElementTag::Static, "Cannot declare a static private method");
                 semanticFailIfTrue(classScope->declarePrivateMethod(*ident) & DeclarationResult::InvalidDuplicateDeclaration, "Cannot declare private method twice");
-                declaresPrivateMethodOrAccessor = true;
+                declaresPrivateMethod = true;
                 type = static_cast<PropertyNode::Type>(type | PropertyNode::PrivateMethod);
                 break;
             }
@@ -3030,11 +3031,11 @@ parseMethod:
                 ident = m_token.m_data.ident;
                 if (isSetter) {
                     semanticFailIfTrue(classScope->declarePrivateSetter(*ident) & DeclarationResult::InvalidDuplicateDeclaration, "Declared private setter with an already used name");
-                    declaresPrivateMethodOrAccessor = true;
+                    declaresPrivateAccessor = true;
                     type = static_cast<PropertyNode::Type>(type | PropertyNode::PrivateSetter);
                 } else {
                     semanticFailIfTrue(classScope->declarePrivateGetter(*ident) & DeclarationResult::InvalidDuplicateDeclaration, "Declared private getter with an already used name");
-                    declaresPrivateMethodOrAccessor = true;
+                    declaresPrivateAccessor = true;
                     type = static_cast<PropertyNode::Type>(type | PropertyNode::PrivateGetter);
                 }
             } else {
@@ -3106,15 +3107,15 @@ parseMethod:
         }
 
         if (classElementsTail)
-            classElementsTail = context.createPropertyList(methodLocation, property, classElementsTail);
+            classElementsTail = context.createPropertyList(methodLocation, property, classElementsTail, declaresPrivateAccessor);
         else
-            classElements = classElementsTail = context.createPropertyList(methodLocation, property);
+            classElements = classElementsTail = context.createPropertyList(methodLocation, property, declaresPrivateAccessor);
     }
 
     info.endOffset = tokenLocation().endOffset - 1;
     consumeOrFail(CLOSEBRACE, "Expected a closing '}' after a class body");
 
-    if (declaresPrivateMethodOrAccessor) {
+    if (declaresPrivateMethod || declaresPrivateAccessor) {
         Identifier privateBrandIdentifier = m_vm.propertyNames->builtinNames().privateBrandPrivateName();
         DeclarationResultMask declarationResult = classScope->declareLexicalVariable(&privateBrandIdentifier, true);
         ASSERT_UNUSED(declarationResult, declarationResult == DeclarationResult::Valid);
@@ -4545,7 +4546,8 @@ template <class TreeBuilder> TreeExpression Parser<LexerType>::parseObjectLitera
 
     bool seenProtoSetter = context.isUnderscoreProtoSetter(property);
 
-    TreePropertyList propertyList = context.createPropertyList(location, property);
+    const bool declaresPrivateAccessor = false;
+    TreePropertyList propertyList = context.createPropertyList(location, property, declaresPrivateAccessor);
     TreePropertyList tail = propertyList;
     while (match(COMMA)) {
         next();
@@ -4559,7 +4561,8 @@ template <class TreeBuilder> TreeExpression Parser<LexerType>::parseObjectLitera
             semanticFailIfTrue(seenProtoSetter, "Attempted to redefine __proto__ property");
             seenProtoSetter = true;
         }
-        tail = context.createPropertyList(propertyLocation, property, tail);
+        const bool declaresPrivateAccessor = false;
+        tail = context.createPropertyList(propertyLocation, property, tail, declaresPrivateAccessor);
     }
 
     location = tokenLocation();

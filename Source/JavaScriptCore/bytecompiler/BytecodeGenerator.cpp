@@ -56,8 +56,8 @@
 #include "UnlinkedModuleProgramCodeBlock.h"
 #include "UnlinkedProgramCodeBlock.h"
 #include <wtf/BitVector.h>
+#include <wtf/HashSet.h>
 #include <wtf/Optional.h>
-#include <wtf/SmallPtrSet.h>
 #include <wtf/StdLibExtras.h>
 #include <wtf/text/WTFString.h>
 
@@ -2990,14 +2990,13 @@ void BytecodeGenerator::pushTDZVariables(const VariableEnvironment& environment,
 Optional<PrivateNameEnvironment> BytecodeGenerator::getAvailablePrivateAccessNames()
 {
     PrivateNameEnvironment result;
-    SmallPtrSet<UniquedStringImpl*, 16> excludedNames;
+    HashSet<UniquedStringImpl*> excludedNames;
     for (unsigned i = m_privateNamesStack.size(); i--; ) {
         auto& map = m_privateNamesStack[i];
         for (auto& entry : map)  {
-            if (!excludedNames.contains(entry.key.get())) {
+            auto addResult = excludedNames.add(entry.key.get());
+            if (addResult.isNewEntry)
                 result.add(entry.key, entry.value);
-                excludedNames.add(entry.key.get());
-            }
         }
     }
 
