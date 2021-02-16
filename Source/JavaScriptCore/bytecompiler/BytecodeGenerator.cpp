@@ -2776,7 +2776,7 @@ void BytecodeGenerator::emitCreatePrivateBrand(RegisterID* scope, const JSTextPo
 
     Variable privateBrandVar = variable(propertyNames().builtinNames().privateBrandPrivateName());
 
-    emitPutToScope(scope, privateBrandVar, newSymbol, DoNotThrowIfNotFound, InitializationMode::Initialization);
+    emitPutToScope(scope, privateBrandVar, newSymbol, DoNotThrowIfNotFound, InitializationMode::ConstInitialization);
 }
 
 void BytecodeGenerator::emitInstallPrivateBrand(RegisterID* target)
@@ -2792,7 +2792,7 @@ void BytecodeGenerator::emitInstallPrivateClassBrand(RegisterID* target)
 {
 
     Variable privateBrandVar = variable(propertyNames().builtinNames().privateClassBrandPrivateName());
-    emitPutToScope(scopeRegister(), privateBrandVar, target, DoNotThrowIfNotFound, InitializationMode::Initialization);
+    emitPutToScope(scopeRegister(), privateBrandVar, target, DoNotThrowIfNotFound, InitializationMode::ConstInitialization);
 }
 
 RegisterID* BytecodeGenerator::emitGetPrivateBrand(RegisterID* dst, RegisterID* scope, bool isStatic)

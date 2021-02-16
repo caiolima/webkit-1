@@ -632,54 +632,9 @@ RegisterID* PropertyListNode::emitBytecode(BytecodeGenerator& generator, Registe
 
     PropertyListNode* p = this;
     RegisterID* dst = nullptr;
-    for (; p; p = p->m_next) {
-        if (!(p->m_node->type() & (PropertyNode::PrivateGetter | PropertyNode::PrivateSetter)))
-            continue;
 
-        // We group private getters and setters to store them in a object
-        GetterSetterPair pair(p->m_node, static_cast<PropertyNode*>(nullptr));
-        GetterSetterMap::AddResult result = privateAccessorMap.add(p->m_node->name()->impl(), pair);
-        auto& resultPair = result.iterator->value;
-        // If the map already contains an element with node->name(),
-        // we need to store this node in the second part.
-        if (!result.isNewEntry)
-            resultPair.second = p->m_node;
-        continue;
-    }
-
-    // Then we declare private accessos
-    for (auto& it : privateAccessorMap) {
-        RefPtr<RegisterID> getterSetterObj = generator.emitNewObject(generator.newTemporary());
-
-        GetterSetterPair pair = it.value;
-        if (pair.first) {
-            dst = pair.first->isInstanceClassProperty() ? prototype : dstOrConstructor;
-            RefPtr<RegisterID> value = generator.emitNode(pair.first->m_assign);
-            if (pair.first->needsSuperBinding())
-                emitPutHomeObject(generator, value.get(), dst);
-            auto setterOrGetterIdent = pair.first->m_type & PropertyNode::PrivateGetter
-                ? generator.propertyNames().builtinNames().getPrivateName()
-                : generator.propertyNames().builtinNames().setPrivateName();
-            generator.emitDirectPutById(getterSetterObj.get(), setterOrGetterIdent, value.get());
-        }
-
-        if (pair.second) {
-            dst = pair.second->isInstanceClassProperty() ? prototype : dstOrConstructor;
-            RefPtr<RegisterID> value = generator.emitNode(pair.second->m_assign);
-            if (pair.second->needsSuperBinding())
-                emitPutHomeObject(generator, value.get(), dst);
-            auto setterOrGetterIdent = pair.second->m_type & PropertyNode::PrivateGetter
-                ? generator.propertyNames().builtinNames().getPrivateName()
-                : generator.propertyNames().builtinNames().setPrivateName();
-            generator.emitDirectPutById(getterSetterObj.get(), setterOrGetterIdent, value.get());
-        }
-
-        Variable var = generator.variable(*pair.first->name());
-        generator.emitPutToScope(generator.scopeRegister(), var, getterSetterObj.get(), DoNotThrowIfNotFound, InitializationMode::ConstInitialization);
-    }
-    
     // Fast case: this loop just handles regular value properties.
-    for (p = this; p && (p->m_node->m_type & PropertyNode::Constant); p = p->m_next) {
+    for (; p && (p->m_node->m_type & PropertyNode::Constant); p = p->m_next) {
         dst = p->m_node->isInstanceClassProperty() ? prototype : dstOrConstructor;
 
         if (p->m_node->type() & (PropertyNode::PrivateGetter | PropertyNode::PrivateSetter))
@@ -1027,8 +982,8 @@ RegisterID* BaseDotNode::emitGetPropertyValue(BytecodeGenerator& generator, Regi
             Variable var = generator.variable(identifierName);
             RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
 
-            RefPtr<RegisterID> privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get(), privateNameEntry.isStatic());
-            generator.emitCheckPrivateBrand(base, privateBrandSymbol.get());
+            RefPtr<RegisterID> privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get(), privateTraits.isStatic());
+            generator.emitCheckPrivateBrand(base, privateBrandSymbol.get(), privateTraits.isStatic());
 
             return generator.emitGetFromScope(dst, scope.get(), var, ThrowIfNotFound);
         }
@@ -1037,8 +992,8 @@ RegisterID* BaseDotNode::emitGetPropertyValue(BytecodeGenerator& generator, Regi
             Variable var = generator.variable(identifierName);
             RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
 
-            RefPtr<RegisterID> privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get(), privateNameEntry.isStatic());
-            generator.emitCheckPrivateBrand(base, privateBrandSymbol.get());
+            RefPtr<RegisterID> privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get(), privateTraits.isStatic());
+            generator.emitCheckPrivateBrand(base, privateBrandSymbol.get(), privateTraits.isStatic());
 
             RefPtr<RegisterID> getterSetterObj = generator.emitGetFromScope(generator.newTemporary(), scope.get(), var, ThrowIfNotFound);
             RefPtr<RegisterID> getterFunction = generator.emitDirectGetById(generator.newTemporary(), getterSetterObj.get(), generator.propertyNames().builtinNames().getPrivateName());
@@ -1052,8 +1007,8 @@ RegisterID* BaseDotNode::emitGetPropertyValue(BytecodeGenerator& generator, Regi
             Variable var = generator.variable(identifierName);
             RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
 
-            RefPtr<RegisterID> privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get(), privateNameEntry.isStatic());
-            generator.emitCheckPrivateBrand(base, privateBrandSymbol.get());
+            RefPtr<RegisterID> privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get(), privateTraits.isStatic());
+            generator.emitCheckPrivateBrand(base, privateBrandSymbol.get(), privateTraits.isStatic());
             generator.emitThrowTypeError("Trying to access an undefined private getter");
             return dst;
         }
@@ -1092,8 +1047,8 @@ RegisterID* BaseDotNode::emitPutProperty(BytecodeGenerator& generator, RegisterI
             Variable var = generator.variable(identifierName);
             RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
 
-            RefPtr<RegisterID> privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get(), privateNameEntry.isStatic());
-            generator.emitCheckPrivateBrand(base, privateBrandSymbol.get());
+            RefPtr<RegisterID> privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get(), privateTraits.isStatic());
+            generator.emitCheckPrivateBrand(base, privateBrandSymbol.get(), privateTraits.isStatic());
 
             RefPtr<RegisterID> getterSetterObj = generator.emitGetFromScope(generator.newTemporary(), scope.get(), var, ThrowIfNotFound);
             RefPtr<RegisterID> setterFunction = generator.emitDirectGetById(generator.newTemporary(), getterSetterObj.get(), generator.propertyNames().builtinNames().setPrivateName());
@@ -1109,8 +1064,8 @@ RegisterID* BaseDotNode::emitPutProperty(BytecodeGenerator& generator, RegisterI
             Variable var = generator.variable(identifierName);
             RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
 
-            RefPtr<RegisterID> privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get(), privateNameEntry.isStatic());
-            generator.emitCheckPrivateBrand(base, privateBrandSymbol.get());
+            RefPtr<RegisterID> privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get(), privateTraits.isStatic());
+            generator.emitCheckPrivateBrand(base, privateBrandSymbol.get(), privateTraits.isStatic());
 
             generator.emitThrowTypeError("Trying to access an undefined private setter");
             return value;
@@ -2457,8 +2412,8 @@ RegisterID* PostfixNode::emitDot(BytecodeGenerator& generator, RegisterID* dst)
             Variable var = generator.variable(ident);
             RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
 
-            RefPtr<RegisterID> privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get());
-            generator.emitCheckPrivateBrand(base.get(), privateBrandSymbol.get());
+            RefPtr<RegisterID> privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get(), privateTraits.isStatic());
+            generator.emitCheckPrivateBrand(base.get(), privateBrandSymbol.get(), privateTraits.isStatic());
 
             generator.emitExpressionInfo(divot(), divotStart(), divotEnd());
             generator.emitThrowTypeError("Trying to access an undefined private setter");
@@ -2468,8 +2423,8 @@ RegisterID* PostfixNode::emitDot(BytecodeGenerator& generator, RegisterID* dst)
         Variable var = generator.variable(ident);
         RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
 
-        RefPtr<RegisterID> privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get());
-        generator.emitCheckPrivateBrand(base.get(), privateBrandSymbol.get());
+        RefPtr<RegisterID> privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get(), privateTraits.isStatic());
+        generator.emitCheckPrivateBrand(base.get(), privateBrandSymbol.get(), privateTraits.isStatic());
 
         RefPtr<RegisterID> value;
         if (privateTraits.isGetter()) {
@@ -2746,8 +2701,8 @@ RegisterID* PrefixNode::emitDot(BytecodeGenerator& generator, RegisterID* dst)
             Variable var = generator.variable(ident);
             RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
 
-            RefPtr<RegisterID> privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get());
-            generator.emitCheckPrivateBrand(base.get(), privateBrandSymbol.get());
+            RefPtr<RegisterID> privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get(), privateTraits.isStatic());
+            generator.emitCheckPrivateBrand(base.get(), privateBrandSymbol.get(), privateTraits.isStatic());
 
             generator.emitExpressionInfo(divot(), divotStart(), divotEnd());
             generator.emitThrowTypeError("Trying to access an undefined private setter");
@@ -2757,8 +2712,8 @@ RegisterID* PrefixNode::emitDot(BytecodeGenerator& generator, RegisterID* dst)
         Variable var = generator.variable(ident);
         RefPtr<RegisterID> scope = generator.emitResolveScope(nullptr, var);
 
-        RefPtr<RegisterID> privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get());
-        generator.emitCheckPrivateBrand(base.get(), privateBrandSymbol.get());
+        RefPtr<RegisterID> privateBrandSymbol = generator.emitGetPrivateBrand(generator.newTemporary(), scope.get(), privateTraits.isStatic());
+        generator.emitCheckPrivateBrand(base.get(), privateBrandSymbol.get(), privateTraits.isStatic());
 
         if (privateTraits.isGetter()) {
             RefPtr<RegisterID> getterSetterObj = generator.emitGetFromScope(generator.newTemporary(), scope.get(), var, ThrowIfNotFound);

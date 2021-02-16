@@ -208,17 +208,17 @@ public:
     bool declarePrivateMethod(const Identifier& identifier) { return declarePrivateMethod(identifier.impl()); }
     bool declarePrivateMethod(const RefPtr<UniquedStringImpl>& identifier, PrivateNameEntry::Traits addionalTraits = PrivateNameEntry::Traits::None);
 
-    PrivateDeclarationResult declarePrivateAccessor(const RefPtr<UniquedStringImpl>&, PrivateNameEntry::Traits accessorTraits, PrivateNameEntry::Traits modifierTraits);
-    
-    bool declareStaticPrivateMethod(const Identifier& identifier) {
-        return declarePrivateMethod(identifier.impl(), static_cast<PrivateNameEntry::Traits>(PrivateNameEntry::Traits::IsMethod | PrivateNameEntry::Traits::IsStatic));
-    }
-
     enum class PrivateDeclarationResult {
         Success,
         DuplicatedName,
         InvalidStaticNonStatic
     };
+
+    PrivateDeclarationResult declarePrivateAccessor(const RefPtr<UniquedStringImpl>&, PrivateNameEntry::Traits accessorTraits);
+    
+    bool declareStaticPrivateMethod(const Identifier& identifier) {
+        return declarePrivateMethod(identifier.impl(), static_cast<PrivateNameEntry::Traits>(PrivateNameEntry::Traits::IsMethod | PrivateNameEntry::Traits::IsStatic));
+    }
 
     PrivateDeclarationResult declarePrivateSetter(const Identifier& identifier) { return declarePrivateSetter(identifier.impl()); }
     PrivateDeclarationResult declareStaticPrivateSetter(const Identifier& identifier) { return declarePrivateSetter(identifier.impl(), PrivateNameEntry::Traits::IsStatic); }
@@ -271,7 +271,7 @@ public:
     {
         if (!m_rareData)
             return false;
-        
+
         for (auto entry : privateNames()) {
             if (entry.value.isPrivateMethodOrAcessor() && entry.value.isStatic())
                 return true;
