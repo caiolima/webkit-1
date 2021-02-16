@@ -9,6 +9,7 @@
         * stress/private-accessor-static-non-static.js: Added.
         * stress/private-getter-inner-class.js:
         * stress/static-private-methods-and-accessor-inner-class.js: Added.
+        * stress/static-private-methods-and-accessor-multiple-evaluation.js: Added.
         * stress/static-private-methods-and-accessors-postfix-node.js: Added.
         * stress/static-private-methods-and-accessors-prefix-node.js: Added.
         * test262/config.yaml:

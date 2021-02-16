@@ -2790,7 +2790,6 @@ void BytecodeGenerator::emitInstallPrivateBrand(RegisterID* target)
 
 void BytecodeGenerator::emitInstallPrivateClassBrand(RegisterID* target)
 {
-
     Variable privateBrandVar = variable(propertyNames().builtinNames().privateClassBrandPrivateName());
     emitPutToScope(scopeRegister(), privateBrandVar, target, DoNotThrowIfNotFound, InitializationMode::ConstInitialization);
 }
