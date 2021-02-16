@@ -104,7 +104,7 @@ void VariableEnvironment::markVariableAsExported(const RefPtr<UniquedStringImpl>
     findResult->value.setIsExported();
 }
 
-VariableEnvironment::PrivateDeclarationResult VariableEnvironment::declarePrivateAccessor(const RefPtr<UniquedStringImpl>& identifier, PrivateNameEntry::Traits accessorTraits)
+VariableEnvironment::PrivateDeclarationResult VariableEnvironment::declarePrivateAccessor(const RefPtr<UniquedStringImpl>& identifier, PrivateNameEntry accessorTraits)
 {
     if (!m_rareData)
         m_rareData = WTF::makeUnique<VariableEnvironment::RareData>();
@@ -112,7 +112,7 @@ VariableEnvironment::PrivateDeclarationResult VariableEnvironment::declarePrivat
     auto findResult = m_rareData->m_privateNames.find(identifier);
 
     if (findResult == m_rareData->m_privateNames.end()) {
-        PrivateNameEntry meta(PrivateNameEntry::Traits::IsDeclared | accessorTraits);
+        PrivateNameEntry meta(PrivateNameEntry::Traits::IsDeclared | accessorTraits.bits());
 
         auto entry = VariableEnvironmentEntry();
         if (accessorTraits.isSetter())
@@ -126,7 +126,7 @@ VariableEnvironment::PrivateDeclarationResult VariableEnvironment::declarePrivat
         m_map.add(identifier, entry);
 
         m_rareData->m_privateNames.add(identifier, meta);
-        return PrivateDeclarationResult::Success;;
+        return PrivateDeclarationResult::Success;
     }
 
     PrivateNameEntry currentEntry = findResult->value;
@@ -138,7 +138,7 @@ VariableEnvironment::PrivateDeclarationResult VariableEnvironment::declarePrivat
         if (accessorTraits.isStatic() != currentEntry.isStatic())
             return PrivateDeclarationResult::InvalidStaticNonStatic;
 
-        PrivateNameEntry meta(currentEntry.bits() | accessorTraits);
+        PrivateNameEntry meta(currentEntry.bits() | accessorTraits.bits());
         m_rareData->m_privateNames.set(identifier, meta);
 
         auto entryIterator = m_map.find(identifier);
@@ -165,19 +165,19 @@ VariableEnvironment::PrivateDeclarationResult VariableEnvironment::declarePrivat
     entry.setIsCaptured();
     m_map.add(identifier, entry);
 
-    PrivateNameEntry newEntry(currentEntry.bits() | PrivateNameEntry::Traits::IsDeclared | accessorTraits);
+    PrivateNameEntry newEntry(currentEntry.bits() | PrivateNameEntry::Traits::IsDeclared | accessorTraits.bits());
     m_rareData->m_privateNames.set(identifier, newEntry);
     return PrivateDeclarationResult::Success;
 }
 
 VariableEnvironment::PrivateDeclarationResult VariableEnvironment::declarePrivateSetter(const RefPtr<UniquedStringImpl>& identifier, PrivateNameEntry::Traits modifierTraits)
 {
-    return declarePrivateAccessor(identifier, PrivateNameEntry::Traits::IsSetter | modifierTraits);
+    return declarePrivateAccessor(identifier, PrivateNameEntry(PrivateNameEntry::Traits::IsSetter | modifierTraits));
 }
 
 VariableEnvironment::PrivateDeclarationResult VariableEnvironment::declarePrivateGetter(const RefPtr<UniquedStringImpl>& identifier, PrivateNameEntry::Traits modifierTraits)
 {
-    return declarePrivateAccessor(identifier, PrivateNameEntry::Traits::IsGetter | modifierTraits);
+    return declarePrivateAccessor(identifier, PrivateNameEntry(PrivateNameEntry::Traits::IsGetter | modifierTraits));
 }
 
 bool VariableEnvironment::declarePrivateMethod(const RefPtr<UniquedStringImpl>& identifier, PrivateNameEntry::Traits addionalTraits)

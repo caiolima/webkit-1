@@ -214,9 +214,10 @@ public:
         InvalidStaticNonStatic
     };
 
-    PrivateDeclarationResult declarePrivateAccessor(const RefPtr<UniquedStringImpl>&, PrivateNameEntry::Traits accessorTraits);
+    PrivateDeclarationResult declarePrivateAccessor(const RefPtr<UniquedStringImpl>&, PrivateNameEntry accessorTraits);
     
-    bool declareStaticPrivateMethod(const Identifier& identifier) {
+    bool declareStaticPrivateMethod(const Identifier& identifier)
+    {
         return declarePrivateMethod(identifier.impl(), static_cast<PrivateNameEntry::Traits>(PrivateNameEntry::Traits::IsMethod | PrivateNameEntry::Traits::IsStatic));
     }
 

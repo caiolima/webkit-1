@@ -5245,7 +5245,7 @@ RegisterID* ClassExprNode::emitBytecode(BytecodeGenerator& generator, RegisterID
         generator.emitPutToScope(scope.get(), classNameVar, constructor.get(), ThrowIfNotFound, InitializationMode::Initialization);
     }
 
-    if(shouldInstallBrandOnConstructor)
+    if (shouldInstallBrandOnConstructor)
         generator.emitInstallPrivateClassBrand(constructor.get());
 
     if (!staticFieldLocations.isEmpty()) {
