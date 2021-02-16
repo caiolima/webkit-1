@@ -827,7 +827,9 @@ namespace JSC {
 
         void emitCreatePrivateBrand(RegisterID* dst, const JSTextPosition& divot, const JSTextPosition& divotStart, const JSTextPosition& divotEnd);
         void emitInstallPrivateBrand(RegisterID* target);
-        RegisterID* emitGetPrivateBrand(RegisterID* dst, RegisterID* scope);
+        void emitInstallPrivateClassBrand(RegisterID* target, const JSTextPosition& divot, const JSTextPosition& divotStart, const JSTextPosition& divotEnd);
+
+        RegisterID* emitGetPrivateBrand(RegisterID* dst, RegisterID* scope, bool isStatic);
         void emitCheckPrivateBrand(RegisterID* base, RegisterID* brand);
 
         void emitSuperSamplerBegin();

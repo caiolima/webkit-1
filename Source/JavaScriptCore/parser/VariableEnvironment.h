@@ -110,6 +110,7 @@ public:
     ALWAYS_INLINE bool isSetter() const { return m_bits & IsSetter; }
     ALWAYS_INLINE bool isGetter() const { return m_bits & IsGetter; }
     ALWAYS_INLINE bool isField() const { return !isPrivateMethodOrAcessor(); }
+    ALWAYS_INLINE bool isStatic() const { return m_bits & IsStatic; }
 
     bool isPrivateMethodOrAcessor() const { return isMethod() || isSetter() || isGetter(); }
 
@@ -130,6 +131,7 @@ public:
         IsMethod = 1 << 2,
         IsGetter = 1 << 3,
         IsSetter = 1 << 4,
+        IsStatic = 1 << 5,
     };
 
 private:
@@ -206,13 +208,25 @@ public:
     bool declarePrivateMethod(const Identifier& identifier) { return declarePrivateMethod(identifier.impl()); }
     bool declarePrivateMethod(const RefPtr<UniquedStringImpl>& identifier);
 
-    bool declarePrivateAccessor(const RefPtr<UniquedStringImpl>&, PrivateNameEntry::Traits);
+    PrivateDeclarationResult declarePrivateAccessor(const RefPtr<UniquedStringImpl>&, PrivateNameEntry::Traits accessorTraits, PrivateNameEntry::Traits modifierTraits);
+    
+    bool declareStaticPrivateMethod(const Identifier& identifier) {
+        return declarePrivateName(identifier.impl(), static_cast<PrivateNameEntry::Traits>(PrivateNameEntry::Traits::IsMethod | PrivateNameEntry::Traits::IsStatic));
+    }
 
-    bool declarePrivateSetter(const Identifier& identifier) { return declarePrivateSetter(identifier.impl()); }
-    bool declarePrivateSetter(const RefPtr<UniquedStringImpl>& identifier);
+    enum class PrivateDeclarationResult {
+        Success,
+        DuplicatedName,
+        InvalidStaticNonStatic
+    };
 
-    bool declarePrivateGetter(const Identifier& identifier) { return declarePrivateGetter(identifier.impl()); }
-    bool declarePrivateGetter(const RefPtr<UniquedStringImpl>& identifier);
+    PrivateDeclarationResult declarePrivateSetter(const Identifier& identifier) { return declarePrivateSetter(identifier.impl()); }
+    PrivateDeclarationResult declareStaticPrivateSetter(const Identifier& identifier) { return declarePrivateSetter(identifier.impl(), PrivateNameEntry::Traits::IsStatic); }
+    PrivateDeclarationResult declarePrivateSetter(const RefPtr<UniquedStringImpl>& identifier, PrivateNameEntry::Traits modifierTraits = PrivateNameEntry::Traits::None);
+
+    PrivateDeclarationResult declarePrivateGetter(const Identifier& identifier) { return declarePrivateGetter(identifier.impl()); }
+    PrivateDeclarationResult declareStaticPrivateGetter(const Identifier& identifier) { return declarePrivateGetter(identifier.impl(), PrivateNameEntry::Traits::IsStatic); }
+    PrivateDeclarationResult declarePrivateGetter(const RefPtr<UniquedStringImpl>& identifier, PrivateNameEntry::Traits modifierTraits = PrivateNameEntry::Traits::None);
 
     Map::AddResult declarePrivateField(const RefPtr<UniquedStringImpl>& identifier)
     {
@@ -263,6 +277,19 @@ public:
                 return true;
         }
 
+        return false;
+    }
+    
+    ALWAYS_INLINE bool hasInstancePrivateAccess() const
+    {
+        if (!m_rareData)
+            return false;
+        
+        for (auto entry : privateNames()) {
+            if (entry.value.isPrivateAccess() && !entry.value.isStatic())
+                return true;
+        }
+        
         return false;
     }
 

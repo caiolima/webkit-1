@@ -2787,9 +2787,29 @@ void BytecodeGenerator::emitInstallPrivateBrand(RegisterID* target)
     OpSetPrivateBrand::emit(this, target, privateBrandSymbol);
 }
 
-RegisterID* BytecodeGenerator::emitGetPrivateBrand(RegisterID* dst, RegisterID* scope)
+void BytecodeGenerator::emitInstallPrivateClassBrand(RegisterID* target, const JSTextPosition& divot, const JSTextPosition& divotStart, const JSTextPosition& divotEnd)
 {
-    Variable privateBrandVar = variable(propertyNames().builtinNames().privateBrandPrivateName());
+    auto symbolVar = variable(propertyNames().builtinNames().createPrivateSymbolPrivateName());
+
+    RegisterID* symbolScope = newTemporary();
+    symbolScope = emitResolveScope(symbolScope, symbolVar);
+    RefPtr<RegisterID> symbolFunction = emitGetFromScope(newTemporary(), symbolScope, symbolVar, ThrowIfNotFound);
+
+    CallArguments args(*this, nullptr);
+    emitLoad(args.thisRegister(), jsUndefined());
+    RefPtr<RegisterID> newSymbol = emitCall(newTemporary(), symbolFunction.get(), NoExpectedFunction, args, divot, divotStart, divotEnd, DebuggableCall::No);
+
+    emitDirectPutByVal(target, newSymbol.get(), newSymbol.get());
+
+    Variable privateBrandVar = variable(propertyNames().builtinNames().privateClassBrandPrivateName());
+    emitPutToScope(scopeRegister(), privateBrandVar, newSymbol.get(), DoNotThrowIfNotFound, InitializationMode::Initialization);
+}
+
+RegisterID* BytecodeGenerator::emitGetPrivateBrand(RegisterID* dst, RegisterID* scope, bool isStatic)
+{
+    Variable privateBrandVar = isStatic
+        ? variable(propertyNames().builtinNames().privateClassBrandPrivateName())
+        : variable(propertyNames().builtinNames().privateBrandPrivateName());
     return emitGetFromScope(dst, scope, privateBrandVar, ThrowIfNotFound);
 }
 
@@ -2960,20 +2980,18 @@ bool BytecodeGenerator::isPrivateSetter(const Identifier& ident)
         if (it != map.end())
             return it->value.isSetter();
     }
-
-    return false;
 }
 
-bool BytecodeGenerator::isPrivateGetter(const Identifier& ident)
+Optional<PrivateNameEntry> BytecodeGenerator::tryGetPrivateTraits(const Identifier& ident)
 {
     for (unsigned i = m_privateNamesStack.size(); i--; ) {
         auto& map = m_privateNamesStack[i];
         auto it = map.find(ident.impl());
         if (it != map.end())
-            return it->value.isGetter();
+            return it->value;
     }
 
-    return false;
+    return WTF::nullopt;
 }
 
 void BytecodeGenerator::pushPrivateAccessNames(const PrivateNameEnvironment* environment)
