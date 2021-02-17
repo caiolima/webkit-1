@@ -146,7 +146,7 @@ VariableEnvironment::PrivateDeclarationResult VariableEnvironment::declarePrivat
         if (accessorTraits.isSetter())
             entryIterator->value.setIsPrivateSetter();
         else {
-            ASSERT(accessorTraits.isGetter);
+            ASSERT(accessorTraits.isGetter());
             entryIterator->value.setIsPrivateGetter();
         }
 
