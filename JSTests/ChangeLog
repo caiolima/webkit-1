@@ -1,9 +1,9 @@
-2021-02-16  Caio Lima  <ticaiolima@gmail.com>
+2021-02-18  Caio Lima  <ticaiolima@gmail.com>
 
         [JSC] Implement private static method
         https://bugs.webkit.org/show_bug.cgi?id=219181
 
-        Reviewed by NOBODY (OOPS!).
+        Reviewed by Yusuke Suzuki.
 
         * stress/class-private-method-access.js: Added.
         * stress/private-accessor-static-non-static.js: Added.
