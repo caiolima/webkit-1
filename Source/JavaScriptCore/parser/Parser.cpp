@@ -3036,29 +3036,21 @@ parseMethod:
         if (isGetter || isSetter) {
             if (Options::usePrivateMethods() && match(PRIVATENAME)) {
                 ident = m_token.m_data.ident;
-                if (isSetter) {
-                    auto declarationResult = classScope->declarePrivateSetter(*ident, tag);
-                    semanticFailIfTrue(declarationResult & DeclarationResult::InvalidDuplicateDeclaration, "Declared private setter with an already used name");
-                    if (tag == ClassElementTag::Static) {
-                        semanticFailIfTrue(declarationResult & DeclarationResult::InvalidPrivateStaticNonStatic, "Cannot declare a private static setter if there is a non-static private getter with used name");
-                        declaresStaticPrivateAccessor = true;
-                    } else {
-                        semanticFailIfTrue(declarationResult & DeclarationResult::InvalidPrivateStaticNonStatic, "Cannot declare a private non-static setter if there is a static private getter with used name");
-                        declaresPrivateAccessor = true;
-                    }
-                    type = static_cast<PropertyNode::Type>(type | PropertyNode::PrivateSetter);
+
+                auto declarationResult = isSetter ? classScope->declarePrivateSetter(*ident, tag) : classScope->declarePrivateGetter(*ident, tag);
+                semanticFailIfTrue(declarationResult & DeclarationResult::InvalidDuplicateDeclaration, "Declared private setter with an already used name");
+                if (tag == ClassElementTag::Static) {
+                    semanticFailIfTrue(declarationResult & DeclarationResult::InvalidPrivateStaticNonStatic, "Cannot declare a private static ", (isSetter ? "setter" : "getter")  , " if there is a non-static private ", (isSetter ? "getter" : "setter"), " with used name");
+                    declaresStaticPrivateAccessor = true;
                 } else {
-                    auto declarationResult = classScope->declarePrivateGetter(*ident, tag);
-                    semanticFailIfTrue(declarationResult & DeclarationResult::InvalidDuplicateDeclaration, "Declared private getter with an already used name");
-                    if (tag == ClassElementTag::Static) {
-                        semanticFailIfTrue(declarationResult & DeclarationResult::InvalidPrivateStaticNonStatic, "Cannot declare a private static getter if there is a non-static private setter with used name");
-                        declaresStaticPrivateAccessor = true;
-                    } else {
-                        semanticFailIfTrue(declarationResult & DeclarationResult::InvalidPrivateStaticNonStatic, "Cannot declare a private non-static getter if there is a static private setter with used name");
-                        declaresPrivateAccessor = true;
-                    }
-                    type = static_cast<PropertyNode::Type>(type | PropertyNode::PrivateGetter);
+                    semanticFailIfTrue(declarationResult & DeclarationResult::InvalidPrivateStaticNonStatic, "Cannot declare a private non-static ", (isSetter ? "setter" : "getter"), " if there is a static private ", (isSetter ? "getter" : "setter"), " with used name");
+                    declaresPrivateAccessor = true;
                 }
+
+                if (isSetter)
+                    type = static_cast<PropertyNode::Type>(type | PropertyNode::PrivateSetter);
+                else 
+                    type = static_cast<PropertyNode::Type>(type | PropertyNode::PrivateGetter);
             } else {
                 type = static_cast<PropertyNode::Type>(type & ~PropertyNode::Constant);
                 type = static_cast<PropertyNode::Type>(type | (isGetter ? PropertyNode::Getter : PropertyNode::Setter));

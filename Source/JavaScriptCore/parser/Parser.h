@@ -512,8 +512,25 @@ public:
             return result;
         }
 
-        useVariable(&ident, false);
-        addClosedVariableCandidateUnconditionally(ident.impl());
+        return result;
+    }
+
+    enum class PrivateAccessorType { Setter, Getter };
+
+    DeclarationResultMask declarePrivateAccessor(const Identifier& ident, ClassElementTag tag, PrivateAccessorType accessorType)
+    {
+        DeclarationResultMask result = DeclarationResult::Valid;
+        VariableEnvironment::PrivateDeclarationResult addResult;
+        if (accessorType == PrivateAccessorType::Setter)
+            addResult = tag == ClassElementTag::Static ? m_lexicalVariables.declareStaticPrivateSetter(ident) : m_lexicalVariables.declarePrivateSetter(ident);
+        else
+            addResult = tag == ClassElementTag::Static ? m_lexicalVariables.declareStaticPrivateGetter(ident) : m_lexicalVariables.declarePrivateGetter(ident);
+
+        if (addResult == VariableEnvironment::PrivateDeclarationResult::DuplicatedName)
+            result |= DeclarationResult::InvalidDuplicateDeclaration;
+
+        if (addResult == VariableEnvironment::PrivateDeclarationResult::InvalidStaticNonStatic)
+            result |= DeclarationResult::InvalidPrivateStaticNonStatic;
 
         return result;
     }
@@ -521,39 +538,13 @@ public:
     DeclarationResultMask declarePrivateSetter(const Identifier& ident, ClassElementTag tag)
     {
         ASSERT(m_allowsLexicalDeclarations);
-        DeclarationResultMask result = DeclarationResult::Valid;
-        auto addResult = tag == ClassElementTag::Static ? m_lexicalVariables.declareStaticPrivateSetter(ident) : m_lexicalVariables.declarePrivateSetter(ident);
-
-        if (addResult == VariableEnvironment::PrivateDeclarationResult::DuplicatedName) {
-            result |= DeclarationResult::InvalidDuplicateDeclaration;
-            return result;
-        }
-
-        if (addResult == VariableEnvironment::PrivateDeclarationResult::InvalidStaticNonStatic) {
-            result |= DeclarationResult::InvalidPrivateStaticNonStatic;
-            return result;
-        }
-
-        return result;
+        return declarePrivateAccessor(ident, tag, PrivateAccessorType::Setter);
     }
 
     DeclarationResultMask declarePrivateGetter(const Identifier& ident, ClassElementTag tag)
     {
         ASSERT(m_allowsLexicalDeclarations);
-        DeclarationResultMask result = DeclarationResult::Valid;
-        auto addResult = tag == ClassElementTag::Static ? m_lexicalVariables.declareStaticPrivateGetter(ident) : m_lexicalVariables.declarePrivateGetter(ident);
-
-        if (addResult == VariableEnvironment::PrivateDeclarationResult::DuplicatedName) {
-            result |= DeclarationResult::InvalidDuplicateDeclaration;
-            return result;
-        }
-
-        if (addResult == VariableEnvironment::PrivateDeclarationResult::InvalidStaticNonStatic) {
-            result |= DeclarationResult::InvalidPrivateStaticNonStatic;
-            return result;
-        }
-
-        return result;
+        return declarePrivateAccessor(ident, tag, PrivateAccessorType::Getter);
     }
 
     DeclarationResultMask declarePrivateField(const Identifier& ident)

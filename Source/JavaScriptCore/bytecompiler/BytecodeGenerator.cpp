@@ -2812,11 +2812,8 @@ void BytecodeGenerator::emitCheckPrivateBrand(RegisterID* base, RegisterID* bran
 {
     if (isStatic) {
         Ref<Label> brandCheckOkLabel = newLabel();
-        RefPtr<RegisterID> condition = newTemporary();
-        emitEqualityOp<OpStricteq>(condition.get(), base, brand);
-        emitJumpIfTrue(condition.get(), brandCheckOkLabel.get());
+        emitJumpIfTrue(emitEqualityOp<OpStricteq>(newTemporary(), base, brand), brandCheckOkLabel.get());
         emitThrowTypeError("Cannot access static private method or acessor");
-
         emitLabel(brandCheckOkLabel.get());
         return;
     
