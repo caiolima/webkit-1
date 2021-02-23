@@ -189,7 +189,7 @@ union GetByIdModeMetadata {
         defaultMode.cachedOffset = 0;
         defaultMode.padding1 = 0;
         mode = GetByIdMode::Default;
-        disabledCache = 0;
+        hitCountForLLIntCaching = Options::prototypeHitCountForLLIntCaching();
     }
 
     void clearToDefaultModeWithoutCache();
@@ -204,7 +204,7 @@ union GetByIdModeMetadata {
         uint32_t padding3;
         uint16_t padding4;
         GetByIdMode mode;
-        uint8_t disabledCache; // This must be zero when we use ProtoLoad mode.
+        uint8_t hitCountForLLIntCaching; // This must be zero when we use ProtoLoad mode.
     };
     GetByIdModeMetadataDefault defaultMode;
     GetByIdModeMetadataUnset unsetMode;
@@ -220,7 +220,7 @@ struct GetByIdModeMetadata {
         defaultMode.cachedOffset = 0;
         defaultMode.padding1 = 0;
         mode = GetByIdMode::Default;
-        disabledCache = 0;
+        hitCountForLLIntCaching = Options::prototypeHitCountForLLIntCaching();;
     }
 
     void clearToDefaultModeWithoutCache();
@@ -236,7 +236,7 @@ struct GetByIdModeMetadata {
         GetByIdModeMetadataProtoLoad protoLoadMode;
     };
     GetByIdMode mode;
-    uint8_t disabledCache;
+    uint8_t hitCountForLLIntCaching;
 };
 #endif
 
@@ -272,7 +272,7 @@ inline void GetByIdModeMetadata::setArrayLengthMode()
     mode = GetByIdMode::ArrayLength;
     new (&arrayLengthMode.arrayProfile) ArrayProfile;
     // Prevent the prototype cache from ever happening.
-    disabledCache = 1;
+    hitCountForLLIntCaching = 0;
 }
 
 inline void GetByIdModeMetadata::setProtoLoadMode()

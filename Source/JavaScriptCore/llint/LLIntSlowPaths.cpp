@@ -696,7 +696,7 @@ static void setupUnsetGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm
 {
     ASSERT(slot.isUnset());
 
-    if (metadata.disabledCache) {
+    if (!metadata.hitCountForLLIntCaching) {
         WTF::dataLogLnIf(Options::verbosePIC(), "PIC Unset is disabled for ", *codeBlock , " ", bytecodeIndex);
         return;
     }
@@ -747,16 +747,11 @@ static void setupUnsetGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm
 static void setupGetByIdPrototypeCache(JSGlobalObject* globalObject, VM& vm, CodeBlock* codeBlock, const Instruction* pc, GetByIdModeMetadata& metadata, JSCell* baseCell, PropertySlot& slot, const Identifier& ident, BytecodeIndex bytecodeIndex)
 {
     UNUSED_PARAM(ident);
+    ASSERT(!metadata.hitCountForLLIntCaching);
     Structure* structure = baseCell->structure(vm);
     if (metadata.mode == GetByIdMode::ProtoLoad && metadata.protoLoadMode.numCases() >= Options::maxAccessVariantListSize()) {
         WTF::dataLogLnIf(Options::verbosePIC(), "Giving up PIC for ", *codeBlock, " " ,bytecodeIndex);
         metadata.clearToDefaultModeWithoutCache();
-        metadata.disabledCache = 1;
-        return;
-    }
-
-    if (metadata.mode != GetByIdMode::ProtoLoad && metadata.disabledCache) {
-        WTF::dataLogLnIf(Options::verbosePIC(), "PIC is disabled with mode: ", static_cast<uint8_t>(metadata.mode) ," on ", *codeBlock);
         return;
     }
 
@@ -887,7 +882,7 @@ static JSValue performLLIntGetByID(const Instruction* pc, CodeBlock* codeBlock, 
 
             // Prevent the prototype cache from ever happening.
 
-            metadata.disabledCache = 1;
+            metadata.hitCountForLLIntCaching = 0;
         
             if (structure->propertyAccessesAreCacheable() && !structure->needImpurePropertyWatchpoint()) {
                 WTF::dataLogLnIf(Options::verbosePIC(), "Adding selfccess IC ", *codeBlock, " ", bytecodeIndex);
@@ -895,9 +890,10 @@ static JSValue performLLIntGetByID(const Instruction* pc, CodeBlock* codeBlock, 
                 metadata.defaultMode.cachedOffset = slot.cachedOffset();
                 vm.heap.writeBarrier(codeBlock);
             }
-        } else if (slot.isValue()) {
+        } else if (metadata.hitCountForLLIntCaching && slot.isValue()) {
             WTF::dataLogLnIf(Options::verbosePIC(), "Trying to cache proto load on ", *codeBlock, " ", bytecodeIndex);
-            setupGetByIdPrototypeCache(globalObject, vm, codeBlock, pc, metadata, baseCell, slot, ident, bytecodeIndex);
+            if (!(--metadata.hitCountForLLIntCaching))
+                setupGetByIdPrototypeCache(globalObject, vm, codeBlock, pc, metadata, baseCell, slot, ident, bytecodeIndex);
         }
     } else if (!LLINT_ALWAYS_ACCESS_SLOW && isJSArray(baseValue) && ident == vm.propertyNames->length) {
         {
@@ -907,10 +903,12 @@ static JSValue performLLIntGetByID(const Instruction* pc, CodeBlock* codeBlock, 
             metadata.arrayLengthMode.arrayProfile.observeStructure(baseValue.asCell()->structure(vm));
         }
         vm.heap.writeBarrier(codeBlock);
-    } else if (!LLINT_ALWAYS_ACCESS_SLOW && Options::useUnsetPIC() && baseValue.isCell() && slot.isCacheable() && slot.isUnset()) {
-        JSCell* baseCell = baseValue.asCell();
-        Structure* structure = baseCell->structure(vm);
-        setupUnsetGetByIdPrototypeCache(globalObject, vm, codeBlock, pc, metadata, baseCell, structure, slot, ident, bytecodeIndex);
+    } else if (!LLINT_ALWAYS_ACCESS_SLOW && Options::useUnsetPIC() && metadata.hitCountForLLIntCaching && baseValue.isCell() && slot.isCacheable() && slot.isUnset()) {
+        if (!(--metadata.hitCountForLLIntCaching)) {
+            JSCell* baseCell = baseValue.asCell();
+            Structure* structure = baseCell->structure(vm);
+            setupUnsetGetByIdPrototypeCache(globalObject, vm, codeBlock, pc, metadata, baseCell, structure, slot, ident, bytecodeIndex);
+        }
     }
 
     return result;
