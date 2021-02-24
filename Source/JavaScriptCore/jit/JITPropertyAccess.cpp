@@ -736,14 +736,16 @@ void JIT::emit_op_get_by_id(const Instruction* currentInstruction)
         notArrayLengthMode.link(this);
     }
 
+    JSValueRegs resultRegs = JSValueRegs(regT0);
+
     JITGetByIdGenerator gen(
         m_codeBlock, CodeOrigin(m_bytecodeIndex), CallSiteIndex(m_bytecodeIndex), RegisterSet::stubUnavailableRegisters(),
-        CacheableIdentifier::createFromIdentifierOwnedByCodeBlock(m_codeBlock, *ident), JSValueRegs(regT0), JSValueRegs(regT0), AccessType::GetById);
+        CacheableIdentifier::createFromIdentifierOwnedByCodeBlock(m_codeBlock, *ident), JSValueRegs(regT0), resultRegs, AccessType::GetById);
     gen.generateFastPath(*this);
     addSlowCase(gen.slowPathJump());
     m_getByIds.append(gen);
 
-    emitValueProfilingSite(bytecode.metadata(m_codeBlock), regT0);
+    emitValueProfilingSite(bytecode.metadata(m_codeBlock), resultRegs);
     emitPutVirtualRegister(resultVReg);
 }
 
