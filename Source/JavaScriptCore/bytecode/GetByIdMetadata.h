@@ -220,7 +220,7 @@ struct GetByIdModeMetadata {
         defaultMode.cachedOffset = 0;
         defaultMode.padding1 = 0;
         mode = GetByIdMode::Default;
-        hitCountForLLIntCaching = Options::prototypeHitCountForLLIntCaching();;
+        hitCountForLLIntCaching = Options::prototypeHitCountForLLIntCaching();
     }
 
     void clearToDefaultModeWithoutCache();
