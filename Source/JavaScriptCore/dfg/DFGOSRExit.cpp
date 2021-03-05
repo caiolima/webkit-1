@@ -656,7 +656,7 @@ void OSRExit::compileExit(CCallHelpers& jit, VM& vm, const OSRExit& exit, const 
             jit.store32(
                 AssemblyHelpers::TrustedImm32(JSValue::CellTag),
                 &bitwise_cast<EncodedValueDescriptor*>(scratch + index)->asBits.tag);
-            break
+            break;
 
         case CellDisplacedInJSStack:
             jit.load32(
