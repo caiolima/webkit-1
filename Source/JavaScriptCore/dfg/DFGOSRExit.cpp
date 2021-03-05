@@ -633,7 +633,7 @@ void OSRExit::compileExit(CCallHelpers& jit, VM& vm, const OSRExit& exit, const 
 #endif
             break;
 
-#if USE(JSVALUE64_32)
+#if USE(JSVALUE32_64)
         case UnboxedBooleanInGPR:
             jit.store32(
                 AssemblyHelpers::TrustedImm32(JSValue::BooleanTag),
