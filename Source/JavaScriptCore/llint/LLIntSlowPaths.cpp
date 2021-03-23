@@ -880,8 +880,6 @@ static JSValue performLLIntGetByID(const Instruction* pc, CodeBlock* codeBlock, 
 
             // Prevent the prototype cache from ever happening.
 
-            metadata.hitCountForLLIntCaching = 0;
-        
             if (structure->propertyAccessesAreCacheable() && !structure->needImpurePropertyWatchpoint()) {
                 WTF::dataLogLnIf(Options::verbosePIC(), "Adding selfccess IC ", *codeBlock, " ", bytecodeIndex);
                 metadata.defaultMode.structureID = structure->id();
@@ -893,7 +891,7 @@ static JSValue performLLIntGetByID(const Instruction* pc, CodeBlock* codeBlock, 
             if (metadata.hitCountForLLIntCaching)
                 --metadata.hitCountForLLIntCaching;
             
-            if (metadata.mode == GetByIdMode::ProtoLoad || !metadata.hitCountForLLIntCaching)
+            if (metadata.mode == GetByIdMode::ProtoLoad || (!metadata.hitCountForLLIntCaching && metadata.isEmpty()))
                 setupGetByIdPrototypeCache(globalObject, vm, codeBlock, pc, metadata, baseCell, slot, ident, bytecodeIndex);
         }
     } else if (!LLINT_ALWAYS_ACCESS_SLOW && isJSArray(baseValue) && ident == vm.propertyNames->length) {

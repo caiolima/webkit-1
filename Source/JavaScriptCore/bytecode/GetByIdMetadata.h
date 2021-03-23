@@ -197,6 +197,7 @@ union GetByIdModeMetadata {
     void setArrayLengthMode();
     void setProtoLoadMode();
     void freeOldIfNeeded();
+    bool isEmpty();
 
     struct {
         uint32_t padding1;
@@ -228,6 +229,7 @@ struct GetByIdModeMetadata {
     void setArrayLengthMode();
     void setProtoLoadMode();
     void freeOldIfNeeded();
+    bool isEmpty();
 
     union {
         GetByIdModeMetadataDefault defaultMode;
@@ -271,8 +273,6 @@ inline void GetByIdModeMetadata::setArrayLengthMode()
     freeOldIfNeeded();
     mode = GetByIdMode::ArrayLength;
     new (&arrayLengthMode.arrayProfile) ArrayProfile;
-    // Prevent the prototype cache from ever happening.
-    hitCountForLLIntCaching = 0;
 }
 
 inline void GetByIdModeMetadata::setProtoLoadMode()
@@ -286,6 +286,11 @@ inline void GetByIdModeMetadata::setProtoLoadMode()
     // the first time we setProtoLoadMode. That's somewhat problematic since it means we won't
     // call this Bags ctor. However, Bag's ctor just zeroes the pointer. Maybe we can rely on that.
     protoLoadMode.cases = nullptr;
+}
+
+inline bool GetByIdModeMetadata::isEmpty()
+{
+    return mode == GetByIdMode::Default && !defaultMode.structureID && !defaultMode.cachedOffset;
 }
 
 } // namespace JSC
