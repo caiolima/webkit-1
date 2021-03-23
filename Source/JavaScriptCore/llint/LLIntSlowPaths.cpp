@@ -890,10 +890,11 @@ static JSValue performLLIntGetByID(const Instruction* pc, CodeBlock* codeBlock, 
             }
         } else if (slot.isValue()) {
             WTF::dataLogLnIf(Options::verbosePIC(), "Trying to cache proto load on ", *codeBlock, " ", bytecodeIndex);
+            bool considersCaching = false;
             if (metadata.hitCountForLLIntCaching)
-                --metadata.hitCountForLLIntCaching;
+                considersCaching = !(--metadata.hitCountForLLIntCaching);
             
-            if (metadata.mode == GetByIdMode::ProtoLoad || !metadata.hitCountForLLIntCaching)
+            if (metadata.mode == GetByIdMode::ProtoLoad || considersCaching)
                 setupGetByIdPrototypeCache(globalObject, vm, codeBlock, pc, metadata, baseCell, slot, ident, bytecodeIndex);
         }
     } else if (!LLINT_ALWAYS_ACCESS_SLOW && isJSArray(baseValue) && ident == vm.propertyNames->length) {
