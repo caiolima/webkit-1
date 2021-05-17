@@ -342,6 +342,8 @@ void JIT::compileOpCallSlowCase(const Instruction* instruction, Vector<SlowCaseE
 
     linkAllSlowCases(iter);
 
+    m_callCompilationInfo[callLinkInfoIndex].slowPathStart = label();
+
     if (opcodeID == op_tail_call || opcodeID == op_tail_call_varargs || opcodeID == op_tail_call_forward_arguments)
         emitRestoreCalleeSaves();
 
