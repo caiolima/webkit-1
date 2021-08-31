@@ -98,6 +98,8 @@ set(JavaScriptCore_OBJECT_LUT_SOURCES
     runtime/NumberConstructor.cpp
     runtime/NumberPrototype.cpp
     runtime/ObjectConstructor.cpp
+    runtime/Realm.cpp
+    runtime/RealmPrototype.cpp
     runtime/ReflectObject.cpp
     runtime/RegExpConstructor.cpp
     runtime/RegExpPrototype.cpp
@@ -1046,6 +1048,7 @@ set(JavaScriptCore_PRIVATE_FRAMEWORK_HEADERS
     runtime/PureNaN.h
     runtime/PutDirectIndexMode.h
     runtime/PutPropertySlot.h
+    runtime/Realm.h
     runtime/RegExp.h
     runtime/RegExpCachedResult.h
     runtime/RegExpGlobalData.h

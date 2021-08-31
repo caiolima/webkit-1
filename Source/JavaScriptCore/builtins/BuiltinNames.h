@@ -62,6 +62,7 @@ namespace JSC {
     macro(Number) \
     macro(Array) \
     macro(ArrayBuffer) \
+    macro(Realm) \
     macro(RegExp) \
     macro(min) \
     macro(trunc) \

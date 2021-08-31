@@ -63,6 +63,7 @@ class JSGlobalObject;
     v(instanceOf, nullptr) \
     v(BuiltinLog, nullptr) \
     v(BuiltinDescribe, nullptr) \
+    v(Realm, nullptr) \
     v(RegExp, nullptr) \
     v(min, nullptr) \
     v(trunc, nullptr) \

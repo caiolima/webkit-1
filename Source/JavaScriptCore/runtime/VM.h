@@ -508,6 +508,7 @@ public:
     IsoSubspace promiseSpace;
     IsoSubspace propertyNameEnumeratorSpace;
     IsoSubspace propertyTableSpace;
+    IsoSubspace realmSpace;
     IsoSubspace regExpSpace;
     IsoSubspace regExpObjectSpace;
     IsoSubspace ropeStringSpace;
