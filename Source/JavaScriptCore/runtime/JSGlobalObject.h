@@ -412,7 +412,7 @@ public:
     LazyProperty<JSGlobalObject, Structure> m_customSetterFunctionStructure;
     LazyProperty<JSGlobalObject, Structure> m_nativeStdFunctionStructure;
     PropertyOffset m_functionNameOffset;
-    WriteBarrier<Structure> m_shadowRealmStructure;
+    WriteBarrier<Structure> m_shadowRealmObjectStructure;
     WriteBarrier<Structure> m_regExpStructure;
     WriteBarrier<AsyncFunctionPrototype> m_asyncFunctionPrototype;
     WriteBarrier<AsyncGeneratorFunctionPrototype> m_asyncGeneratorFunctionPrototype;
@@ -614,7 +614,7 @@ public:
     }
 
     JS_EXPORT_PRIVATE static JSGlobalObject* create(VM&, Structure*);
-    JS_EXPORT_PRIVATE static JSGlobalObject* create(VM&, Structure*, const GlobalObjectMethodTable*);
+    JS_EXPORT_PRIVATE static JSGlobalObject* createWithCustomMethodTable(VM&, Structure*, const GlobalObjectMethodTable*);
 
     DECLARE_EXPORT_INFO;
 
@@ -836,7 +836,7 @@ public:
     PropertyOffset functionNameOffset() const { return m_functionNameOffset; }
     Structure* numberObjectStructure() const { return m_numberObjectStructure.get(this); }
     Structure* regExpStructure() const { return m_regExpStructure.get(); }
-    Structure* shadowRealmStructure() const { return m_shadowRealmStructure.get(); }
+    Structure* shadowRealmStructure() const { return m_shadowRealmObjectStructure.get(); }
     Structure* generatorStructure() const { return m_generatorStructure.get(); }
     Structure* asyncGeneratorStructure() const { return m_asyncGeneratorStructure.get(); }
     Structure* generatorFunctionStructure() const { return m_generatorFunctionStructure.get(); }

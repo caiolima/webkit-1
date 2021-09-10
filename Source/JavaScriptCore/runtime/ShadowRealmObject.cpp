@@ -52,7 +52,7 @@ ShadowRealmObject* ShadowRealmObject::create(VM& vm, Structure* structure, const
 {
     ShadowRealmObject* object = new (NotNull, allocateCell<ShadowRealmObject>(vm.heap)) ShadowRealmObject(vm, structure);
     object->finishCreation(vm);
-    JSGlobalObject* globalObject = JSGlobalObject::create(vm, JSGlobalObject::createStructure(vm, jsNull()), methodTable);
+    JSGlobalObject* globalObject = JSGlobalObject::createWithCustomMethodTable(vm, JSGlobalObject::createStructure(vm, jsNull()), methodTable);
     object->m_globalObject.set(vm, object, globalObject);
     return object;
 }
