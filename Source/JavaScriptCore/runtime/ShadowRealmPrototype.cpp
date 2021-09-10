@@ -71,8 +71,7 @@ JSC_DEFINE_HOST_FUNCTION(importInRealm, (JSGlobalObject* globalObject, CallFrame
 
     JSValue thisValue = callFrame->uncheckedArgument(0);
     ShadowRealmObject* thisRealm = jsDynamicCast<ShadowRealmObject*>(vm, thisValue);
-    if (UNLIKELY(!thisRealm))
-        return throwVMTypeError(globalObject, scope, "'this' should be a ShadowRealm");
+    RELEASE_ASSERT(thisRealm);
 
     auto* promise = JSPromise::create(vm, globalObject->promiseStructure());
 
@@ -101,12 +100,10 @@ JSC_DEFINE_HOST_FUNCTION(evalInRealm, (JSGlobalObject* globalObject, CallFrame* 
 
     JSValue thisValue = callFrame->argument(0);
     ShadowRealmObject* thisRealm = jsDynamicCast<ShadowRealmObject*>(vm, thisValue);
-    if (UNLIKELY(!thisRealm))
-        return throwVMTypeError(globalObject, scope, "First arg should be a ShadowRealm");
+    RELEASE_ASSERT(thisRealm);
 
     JSValue evalArg = callFrame->argument(1);
-    if (!evalArg.isString())
-        return throwVMTypeError(globalObject, scope, "Second argument must be a string");
+    RELEASE_ASSERT(evalArg.isString());
     String sourceCode = evalArg.toWTFString(globalObject);
     RETURN_IF_EXCEPTION(scope, encodedJSValue());
 

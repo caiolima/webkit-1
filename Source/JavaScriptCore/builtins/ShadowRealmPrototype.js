@@ -43,23 +43,37 @@ function wrap(target)
   return target;
 }
 
-function evaluate(evalStr)
+function evaluate(sourceText)
 {
   "use strict";
 
-  let result = @evalInRealm(this, evalStr)
+  if (!@isShadowRealm(this))
+      @throwTypeError("`%ShadowRealm%.evaluate requires that |this| be a ShadowRealm instance");
+
+  if (typeof sourceText !== 'string')
+      @throwTypeError("`%ShadowRealm%.evaluate requires that the |sourceText| argument be a string");
+
+  let result = @evalInRealm(this, sourceText)
   return @wrap(result);
 }
 
-function importValue(module, binding)
+function importValue(specifier, exportName)
 {
-  let bindingStr = binding.toString();
-  let lookupBinding = (m) => {
-    if (bindingStr in m) {
-      return @wrap(m[bindingStr]);
-    }
+  "use strict";
 
-    @throwTypeError("import value doesn't exist");
+  if (!@isShadowRealm(this))
+      @throwTypeError("`%ShadowRealm%.importValue requires that |this| be a ShadowRealm instance");
+
+  let exportNameStr = @toString(exportName);
+  let specifierStr = @toString(specifier);
+
+  let lookupBinding = (module) => {
+    let lookup = module[exportNameStr]
+    if (lookup === @undefined)
+        @throwTypeError("%ShadowRealm%.importValue requires |exportName| to exist in the |specifier|");
+
+    return @wrap(lookup);
   };
-  return @importInRealm(this, module).then(lookupBinding);
+
+  return @importInRealm(this, specifierStr).@then(lookupBinding);
 }
