@@ -30,7 +30,17 @@ function wrap(target)
 
   if (@isCallable(target)) {
     let wrapped = (...args) => {
-      const wrappedArgs = args.map(@wrap);
+      // specialization of Array.prototype.map
+      var argsLength = @toLength(args.length);
+      var wrappedArgs = @arraySpeciesCreate(args, argsLength);
+
+      for (var i = 0; i < argsLength; i++) {
+          if (!(i in args))
+              continue;
+          var mappedValue = @wrap.@call(@undefined, args[i], i, args);
+          @putByValDirect(wrappedArgs, i, mappedValue);
+      }
+
       const result = target.@apply(@undefined, wrappedArgs);
       return @wrap(result);
     };
