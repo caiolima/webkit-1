@@ -64,11 +64,6 @@ JSC_DEFINE_HOST_FUNCTION(importInRealm, (JSGlobalObject* globalObject, CallFrame
     VM& vm = globalObject->vm();
     auto scope = DECLARE_THROW_SCOPE(vm);
 
-    if (callFrame->argumentCount() != 2) {
-        throwTypeError(globalObject, scope, "Expected to be called with two arguments"_s);
-        RELEASE_AND_RETURN(scope, JSValue::encode(jsUndefined()));
-    }
-
     JSValue thisValue = callFrame->uncheckedArgument(0);
     ShadowRealmObject* thisRealm = jsDynamicCast<ShadowRealmObject*>(vm, thisValue);
     RELEASE_ASSERT(thisRealm);
@@ -92,11 +87,6 @@ JSC_DEFINE_HOST_FUNCTION(evalInRealm, (JSGlobalObject* globalObject, CallFrame* 
 {
     VM& vm = globalObject->vm();
     auto scope = DECLARE_THROW_SCOPE(vm);
-
-    if (callFrame->argumentCount() != 2) {
-        throwTypeError(globalObject, scope, "Expected to be called with two arguments"_s);
-        RELEASE_AND_RETURN(scope, JSValue::encode(jsUndefined()));
-    }
 
     JSValue thisValue = callFrame->argument(0);
     ShadowRealmObject* thisRealm = jsDynamicCast<ShadowRealmObject*>(vm, thisValue);
