@@ -115,7 +115,13 @@ JSC_DEFINE_HOST_FUNCTION(evalInRealm, (JSGlobalObject* globalObject, CallFrame* 
         if (vm.isTerminationException(evaluationException.get()))
             vm.setExecutionForbidden();
 
-        throwTypeError(globalObject, scope, "Error encountered during evaluation"_s);
+        JSValue errorValue = evaluationException.get()->value();
+        ErrorInstance* error = jsDynamicCast<ErrorInstance*>(vm, errorValue);
+        if (error != nullptr && error->errorType() == ErrorType::SyntaxError)
+            throwException(globalObject, scope, error);
+        else
+            throwTypeError(globalObject, scope, "Error encountered during evaluation"_s);
+
         RELEASE_AND_RETURN(scope, JSValue::encode(jsUndefined()));
     }
     RELEASE_AND_RETURN(scope, JSValue::encode(result));
