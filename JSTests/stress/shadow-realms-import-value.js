@@ -11,7 +11,7 @@ function shouldThrow(func, errorType) {
     }
 
     if (!(error instanceof errorType))
-        throw new Error(`Expected ${errorType.name}!`);
+        throw new Error(`Expected ${errorType.name}! got ${error.name}`);
 }
 
 async function shouldThrowAsync(func, errorType) {
@@ -23,37 +23,62 @@ async function shouldThrowAsync(func, errorType) {
     }
 
     if (!(error instanceof errorType))
-        throw new Error(`Expected ${errorType.name}!`);
+        throw new Error(`Expected ${errorType.name}! got ${error.name} with message ${error.message}`);
 }
-
 
 (async function () {
     const importPath = "./resources/shadow-realm-example-module.js";
     const { shouldBe } = await import('./import-tests/should.js');
     const { answer, putInGlobal, getFromGlobal } = await import(importPath);
+    const outerAnswer = answer;
+    const outerPutInGlobal = putInGlobal;
+    const outerGetFromGlobal = getFromGlobal;
 
     {
         let realm = new ShadowRealm();
-        let answerVal = await realm.importValue(importPath, "answer");
-        shouldBe(answerVal, answerVal);
 
+        // one can imported primitive/callable variables just fine
+        let innerAnswer = await realm.importValue(importPath, "answer");
+        shouldBe(innerAnswer, outerAnswer);
+
+        // imported variables are checked for primtive/callable-ness
         await shouldThrowAsync(async () => { let x = await realm.importValue(importPath, "anObject"); }, TypeError);
 
-        let putInGlobalFn = await realm.importValue(importPath, "putInGlobal");
-        let getFromGlobalFn = await realm.importValue(importPath, "getFromGlobal");
-        putInGlobalFn("salutation", "sarava");
-        shouldBe(getFromGlobalFn("saluation"), "sarava");
+        // importing non-existent ref fails
+        await shouldThrowAsync(async () => { let x = await realm.importValue(importPath, "nothing"); }, TypeError);
 
-        putInGlobal("saluation", "hello world!");
-        shouldBe(getFromGlobal("saluation"), "hello world!");
+        // importing from non-existent file fails
+        await shouldThrowAsync(async () => { let x = await realm.importValue("random", "nothing"); }, TypeError);
 
-        shouldBe(getFromGlobalFn("saluation"), "sarava");
+        // we can import functions through an inner realm for use in the outer
+        let innerPutInGlobal = await realm.importValue(importPath, "putInGlobal");
+        let innerGetFromGlobal = await realm.importValue(importPath, "getFromGlobal");
+        innerPutInGlobal("salutation", "sarava");
+        shouldBe(innerGetFromGlobal("saluation"), "sarava");
 
-        shouldThrow(() => { putInGlobalFn("treasure", new Object()); }, TypeError);
+        // inner global state is unchanged by outer global state change
+        outerPutInGlobal("saluation", "hello world!");
+        shouldBe(outerGetFromGlobal("saluation"), "hello world!");
+        shouldBe(innerGetFromGlobal("saluation"), "sarava");
 
+        // wrapped functions check arguments for primitive/callable-ness
+        shouldThrow(() => { innerPutInGlobal("treasure", new Object()); }, TypeError);
+
+        // imported functions are wrapped with correct return value checks
         let getAnObjectFn = await realm.importValue(importPath, "getAnObject");
         shouldThrow(() => { getAnObjectFn(); }, TypeError);
 
+        // thread a function in and out of a realm to wrap it up
+        innerPutInGlobal("outer-realm-put", outerPutInGlobal);
+        wrappedOuterPutInGlobal = innerGetFromGlobal("outer-realm-put");
+
+        // it still manipuates the correct global object state
+        wrappedOuterPutInGlobal("treasure", "shiny tin scrap");
+        shouldBe(outerGetFromGlobal("treasure"), "shiny tin scrap");
+
+        // wrapped functions check arguments for primitive/callable-ness
+        shouldThrow(() => { wrappedOuterPutInGlobal("treasure", new Object()); }, TypeError);
+        shouldThrow(() => { wrappedOuterPutInGlobal(new Object(), "shiny tin scrap"); }, TypeError);
     }
 }()).catch((error) => {
     print(String(error));

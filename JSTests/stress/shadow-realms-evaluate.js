@@ -25,7 +25,6 @@ function shouldThrow(func, errorType, assertionFn) {
     shouldBe(realm.evaluate("1"), 1);
     realm.evaluate("var x = 1");
     shouldBe(realm.evaluate("x"), 1);
-
 }
 
 {

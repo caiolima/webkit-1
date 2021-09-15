@@ -1,4 +1,3 @@
-
 export function putInGlobal(key, val) {
   globalThis.key = val;
 }
