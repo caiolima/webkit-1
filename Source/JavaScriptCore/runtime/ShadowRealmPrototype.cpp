@@ -107,9 +107,11 @@ JSC_DEFINE_HOST_FUNCTION(evalInRealm, (JSGlobalObject* globalObject, CallFrame* 
 
         JSValue errorValue = evaluationException.get()->value();
         ErrorInstance* error = jsDynamicCast<ErrorInstance*>(vm, errorValue);
-        if (error != nullptr && error->errorType() == ErrorType::SyntaxError)
-            throwException(globalObject, scope, error);
-        else
+        if (error != nullptr && error->errorType() == ErrorType::SyntaxError) {
+            const String syntaxErrorMessage = error->sanitizedMessageString(realmGlobalObject);
+            RETURN_IF_EXCEPTION(scope, { });
+            throwException(globalObject, scope, createSyntaxError(globalObject, syntaxErrorMessage));
+        } else
             throwTypeError(globalObject, scope, "Error encountered during evaluation"_s);
 
         RELEASE_AND_RETURN(scope, JSValue::encode(jsUndefined()));
