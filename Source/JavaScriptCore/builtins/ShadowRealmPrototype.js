@@ -84,6 +84,10 @@ function importValue(specifier, exportName)
 
     return @wrap(lookup);
   };
+  let crossRealmThrow = (error) => {
+    // re-throw because import issues raise errors using the realm's global object
+    @throwTypeError(@toString(error));
+  };
 
-  return @importInRealm(this, specifierStr).@then(lookupBinding);
+  return @importInRealm(this, specifierStr).@then(lookupBinding, crossRealmThrow);
 }
