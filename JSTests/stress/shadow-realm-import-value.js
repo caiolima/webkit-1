@@ -2,6 +2,11 @@
 
 var abort = $vm.abort;
 
+function shouldBe(actual, expected) {
+    if (actual !== expected)
+        throw new Error(`expected ${expected} but got ${actual}`);
+}
+
 function shouldThrow(func, errorType) {
     let error;
     try {
@@ -28,7 +33,6 @@ async function shouldThrowAsync(func, errorType) {
 
 (async function () {
     const importPath = "./resources/shadow-realm-example-module.js";
-    const { shouldBe } = await import('./import-tests/should.js');
     const { answer, putInGlobal, getFromGlobal } = await import(importPath);
     const outerAnswer = answer;
     const outerPutInGlobal = putInGlobal;
@@ -79,8 +83,33 @@ async function shouldThrowAsync(func, errorType) {
         // wrapped functions check arguments for primitive/callable-ness
         shouldThrow(() => { wrappedOuterPutInGlobal("treasure", new Object()); }, TypeError);
         shouldThrow(() => { wrappedOuterPutInGlobal(new Object(), "shiny tin scrap"); }, TypeError);
+
+        // must be called on a ShadowRealm
+        let notRealm = {};
+        shouldThrow(
+          () => { realm.importValue.call(notRealm, importPath, "answer"); },
+          TypeError,
+          (err) => { shouldBe($.globalObjectFor(err), globalThis); }
+        );
     }
 }()).catch((error) => {
     print(String(error));
     abort();
 });
+
+{
+    shouldBe(typeof ShadowRealm.prototype.importValue, "function");
+
+    let importValueName = Object.getOwnPropertyDescriptor(ShadowRealm.prototype.importValue, "name");
+    shouldBe(importValueName.value, "importValue");
+    shouldBe(importValueName.enumerable, false);
+    shouldBe(importValueName.writable, false);
+    shouldBe(importValueName.configurable, true);
+
+    let importValueLength = Object.getOwnPropertyDescriptor(ShadowRealm.prototype.importValue, "length");
+    shouldBe(importValueLength.value, 2);
+    shouldBe(importValueLength.enumerable, false);
+    shouldBe(importValueLength.writable, false);
+    shouldBe(importValueLength.configurable, true);
+}
+
