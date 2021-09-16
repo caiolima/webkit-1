@@ -27,11 +27,14 @@
 #include "ShadowRealmPrototype.h"
 
 #include "Completion.h"
+#include "Interpreter.h"
 #include "JSCBuiltins.h"
 #include "JSCJSValue.h"
 #include "JSGlobalObject.h"
 #include "JSModuleLoader.h"
 #include "JSInternalPromise.h"
+#include "LiteralParser.h"
+#include "IndirectEvalExecutable.h"
 #include "ShadowRealmObject.h"
 
 #include "ShadowRealmPrototype.lut.h"
@@ -91,31 +94,47 @@ JSC_DEFINE_HOST_FUNCTION(evalInRealm, (JSGlobalObject* globalObject, CallFrame* 
     JSValue thisValue = callFrame->argument(0);
     ShadowRealmObject* thisRealm = jsDynamicCast<ShadowRealmObject*>(vm, thisValue);
     RELEASE_ASSERT(thisRealm);
+    JSGlobalObject* realmGlobalObject = thisRealm->globalObject();
 
     JSValue evalArg = callFrame->argument(1);
-    RELEASE_ASSERT(evalArg.isString());
-    String sourceCode = evalArg.toWTFString(globalObject);
+    // eval code adapted from JSGlobalObjecFunctions::globalFuncEval
+    if (!evalArg.isString())
+        return JSValue::encode(evalArg);
+    String s = asString(evalArg)->value(globalObject);
     RETURN_IF_EXCEPTION(scope, encodedJSValue());
 
-    JSGlobalObject* realmGlobalObject = thisRealm->globalObject();
-    NakedPtr<Exception> evaluationException;
-    SourceCode source = makeSource(sourceCode, callFrame->callerSourceOrigin(vm));
-    JSValue result = JSC::evaluate(realmGlobalObject, source, realmGlobalObject, evaluationException);
-    if (evaluationException) {
-        if (vm.isTerminationException(evaluationException.get()))
-            vm.setExecutionForbidden();
-
-        JSValue errorValue = evaluationException.get()->value();
-        ErrorInstance* error = jsDynamicCast<ErrorInstance*>(vm, errorValue);
-        if (error != nullptr && error->errorType() == ErrorType::SyntaxError) {
-            const String syntaxErrorMessage = error->sanitizedMessageString(realmGlobalObject);
-            RETURN_IF_EXCEPTION(scope, { });
-            throwException(globalObject, scope, createSyntaxError(globalObject, syntaxErrorMessage));
-        } else
-            throwTypeError(globalObject, scope, "Error encountered during evaluation"_s);
-
-        RELEASE_AND_RETURN(scope, JSValue::encode(jsUndefined()));
+    JSValue parsedObject;
+    if (s.is8Bit()) {
+        LiteralParser<LChar> preparser(globalObject, s.characters8(), s.length(), NonStrictJSON, nullptr);
+        parsedObject = preparser.tryLiteralParse();
+    } else {
+        LiteralParser<UChar> preparser(globalObject, s.characters16(), s.length(), NonStrictJSON, nullptr);
+        parsedObject = preparser.tryLiteralParse();
     }
+    RETURN_IF_EXCEPTION(scope, encodedJSValue());
+    if (parsedObject)
+        return JSValue::encode(parsedObject);
+
+    NakedPtr<JSObject> executableError;
+    SourceCode source = makeSource(s, callFrame->callerSourceOrigin(vm));
+    EvalExecutable* eval = IndirectEvalExecutable::createSafe(realmGlobalObject, source, DerivedContextType::None, false, EvalContextType::None, executableError);
+    if (executableError) {
+        ErrorInstance* error = jsDynamicCast<ErrorInstance*>(vm, JSValue(executableError.get()));
+        if (error != nullptr && error->errorType() == ErrorType::SyntaxError) {
+            scope.clearException();
+            const String syntaxErrorMessage = error->sanitizedMessageString(globalObject);
+            RETURN_IF_EXCEPTION(scope, { });
+            throwVMError(globalObject, scope, createSyntaxError(globalObject, syntaxErrorMessage));
+        } else {
+            throwVMError(globalObject, scope, createTypeError(globalObject, "Error encountered during evaluation"_s));
+        }
+        return JSValue::encode(jsUndefined());
+    }
+    RETURN_IF_EXCEPTION(scope, { });
+
+    JSValue result = vm.interpreter->execute(eval, realmGlobalObject, realmGlobalObject->globalThis(), realmGlobalObject->globalScope());
+    RETURN_IF_EXCEPTION(scope,
+        throwVMError(globalObject, scope, createTypeError(globalObject, "Error encountered during evaluation"_s)));
     RELEASE_AND_RETURN(scope, JSValue::encode(result));
 }
 
