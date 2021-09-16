@@ -43,11 +43,20 @@ async function shouldThrowAsync(func, errorType) {
     {
         let realm = new ShadowRealm();
 
+        // update local module state + check it
         shouldBe(outerGetCallCount(), 0);
         outerGetAnObject();
         shouldBe(outerGetCallCount(), 1);
+        // update realm module state + check it
         let innerGetCallCount = await realm.importValue(importPath, "getCallCount");
+        let innerPutInGlobal = await realm.importValue(importPath, "putInGlobal");
         shouldBe(innerGetCallCount(), 0);
+        innerPutInGlobal("something", "random");
+        shouldBe(innerGetCallCount(), 1);
+        // re-importing the module into the realm doesn't reload the module
+        innerGetCallCount = await realm.importValue(importPath, "getCallCount");
+        shouldBe(innerGetCallCount(), 1);
+        // the (outer) local module state stays intact
         shouldBe(outerGetCallCount(), 1);
 
         // one can imported primitive/callable variables just fine
@@ -65,7 +74,6 @@ async function shouldThrowAsync(func, errorType) {
         await shouldThrowAsync(async () => { let x = await realm.importValue("random", "nothing"); }, TypeError);
 
         // we can import functions through an inner realm for use in the outer
-        let innerPutInGlobal = await realm.importValue(importPath, "putInGlobal");
         let innerGetFromGlobal = await realm.importValue(importPath, "getFromGlobal");
         innerPutInGlobal("salutation", "sarava");
         shouldBe(innerGetFromGlobal("salutation"), "sarava");
