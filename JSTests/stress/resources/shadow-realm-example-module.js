@@ -1,15 +1,25 @@
-export function putInGlobal(key, val) {
+var callCount = 0;
+
+function putInGlobal(key, val) {
+  callCount++;
   globalThis.key = val;
 }
 
-export function getFromGlobal(key) {
+function getFromGlobal(key) {
+  callCount++;
   return globalThis.key;
 }
 
-export var anObject = new Object();
+var anObject = new Object();
 
-export function getAnObject() {
+function getAnObject() {
+  callCount++;
   return anObject;
 }
 
-export var answer = 6;
+function getCallCount() {
+  return callCount;
+}
+
+var answer = 6;
+export { anObject, answer, getCallCount, getFromGlobal, getAnObject, putInGlobal };

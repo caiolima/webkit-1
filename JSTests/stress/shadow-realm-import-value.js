@@ -33,15 +33,25 @@ async function shouldThrowAsync(func, errorType) {
 
 (async function () {
     const importPath = "./resources/shadow-realm-example-module.js";
-    const { answer, putInGlobal, getFromGlobal } = await import(importPath);
+    const { answer, getCallCount, putInGlobal, getFromGlobal, getAnObject } = await import(importPath);
     const outerAnswer = answer;
+    const outerGetCallCount = getCallCount;
     const outerPutInGlobal = putInGlobal;
     const outerGetFromGlobal = getFromGlobal;
+    const outerGetAnObject = getAnObject;
 
     {
         let realm = new ShadowRealm();
 
+        shouldBe(outerGetCallCount(), 0);
+        outerGetAnObject();
+        shouldBe(outerGetCallCount(), 1);
+        let innerGetCallCount = await realm.importValue(importPath, "getCallCount");
+        shouldBe(innerGetCallCount(), 0);
+        shouldBe(outerGetCallCount(), 1);
+
         // one can imported primitive/callable variables just fine
+        // shouldBe(innerAnswer, outerAnswer);
         let innerAnswer = await realm.importValue(importPath, "answer");
         shouldBe(innerAnswer, outerAnswer);
 
@@ -58,12 +68,12 @@ async function shouldThrowAsync(func, errorType) {
         let innerPutInGlobal = await realm.importValue(importPath, "putInGlobal");
         let innerGetFromGlobal = await realm.importValue(importPath, "getFromGlobal");
         innerPutInGlobal("salutation", "sarava");
-        shouldBe(innerGetFromGlobal("saluation"), "sarava");
+        shouldBe(innerGetFromGlobal("salutation"), "sarava");
 
         // inner global state is unchanged by outer global state change
-        outerPutInGlobal("saluation", "hello world!");
-        shouldBe(outerGetFromGlobal("saluation"), "hello world!");
-        shouldBe(innerGetFromGlobal("saluation"), "sarava");
+        outerPutInGlobal("salutation", "hello world!");
+        shouldBe(outerGetFromGlobal("salutation"), "hello world!");
+        shouldBe(innerGetFromGlobal("salutation"), "sarava");
 
         // wrapped functions check arguments for primitive/callable-ness
         shouldThrow(() => { innerPutInGlobal("treasure", new Object()); }, TypeError);
