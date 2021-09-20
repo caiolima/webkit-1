@@ -14,7 +14,7 @@ function shouldThrow(func, errorType, assertionFn) {
     }
 
     if (!(error instanceof errorType))
-        throw new Error(`Expected ${errorType.name}!`);
+        throw new Error(`Expected ${errorType.name} but got ${error.name}`);
 
     assertionFn(error);
 }
@@ -103,6 +103,25 @@ function shouldThrow(func, errorType, assertionFn) {
       TypeError,
       (err) => { shouldBe($.globalObjectFor(err), globalThis); }
     );
+}
+
+// trigger JIT
+{
+    function doEval(realm, s)
+    {
+        return realm.evaluate(s);
+    }
+
+    noInline(doEval);
+
+    let realm = new ShadowRealm();
+    for (var i = 0; i < 10000; ++i)
+        shouldBe(doEval(realm, '42'), 42);
+
+    for (var i = 0; i < 10000; ++i) {
+        let f = doEval(realm, '(x) => { return x() + 1; }');
+        shouldBe(f(() => { return 41; }), 42);
+    }
 }
 
 // evaluate specs

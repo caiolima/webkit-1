@@ -110,6 +110,24 @@ async function shouldThrowAsync(func, errorType) {
           (err) => { shouldBe($.globalObjectFor(err), globalThis); }
         );
     }
+
+
+    // trigger JIT
+    {
+        async function doImport(realm, s)
+        {
+            let innerGetCallCount = await realm.importValue(importPath, s);
+            return innerGetCallCount();
+        }
+
+        noInline(doImport);
+
+        let realm = new ShadowRealm();
+        for (var i = 0; i < 10000; ++i) {
+            let result = await doImport(realm, "getCallCount");
+            shouldBe(result, 0);
+        }
+    }
 }()).catch((error) => {
     print(String(error));
     abort();
