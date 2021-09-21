@@ -123,6 +123,16 @@ function shouldThrow(func, errorType, assertionFn) {
         shouldBe($.globalObjectFor(f), globalThis);
         shouldBe(f(() => { return 41; }), 42);
     }
+    // (potential) inlining of wrapped function uses correct global object
+    let f = doEval(realm, '(x) => { return x() + globalThis.secret; }');
+    for (var i = 0; i < 10000; ++i) {
+        shouldBe($.globalObjectFor(f), globalThis);
+        shouldBe(f(() => { return 41; }), 42);
+    }
+    // (potential) inlining inside a realm uses correct global object
+    let loopInside = doEval(realm, '(x) => { let acc = 0; for (var i = 0; i < 10000; ++i) { acc += x(); }; return acc; }');
+    globalThis.secret = -1;
+    shouldBe(loopInside(() => { return globalThis.secret; }), -10000);
 }
 
 // evaluate specs
