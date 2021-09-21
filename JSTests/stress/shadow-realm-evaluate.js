@@ -114,11 +114,13 @@ function shouldThrow(func, errorType, assertionFn) {
     noInline(doEval);
 
     let realm = new ShadowRealm();
+    realm.evaluate("globalThis.secret = 1;");
     for (var i = 0; i < 10000; ++i)
         shouldBe(doEval(realm, '42'), 42);
 
     for (var i = 0; i < 10000; ++i) {
-        let f = doEval(realm, '(x) => { return x() + 1; }');
+        let f = doEval(realm, '(x) => { return x() + globalThis.secret; }');
+        shouldBe($.globalObjectFor(f), globalThis);
         shouldBe(f(() => { return 41; }), 42);
     }
 }
