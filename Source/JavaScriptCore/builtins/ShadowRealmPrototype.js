@@ -26,68 +26,69 @@
 @globalPrivate
 function wrap(target)
 {
-  "use strict";
+    "use strict";
 
-  if (@isCallable(target)) {
-    let wrapped = (...args) => {
-      // specialization of Array.prototype.map
-      var argsLength = @toLength(args.length);
-      var wrappedArgs = @arraySpeciesCreate(args, argsLength);
+    if (@isCallable(target)) {
+        let wrapped = (...args) => {
+            // specialization of Array.prototype.map
+            var argsLength = @toLength(args.length);
+            var wrappedArgs = @arraySpeciesCreate(args, argsLength);
 
-      for (var i = 0; i < argsLength; i++) {
-          if (!(i in args))
-              continue;
-          var mappedValue = @wrap.@call(@undefined, args[i], i, args);
-          @putByValDirect(wrappedArgs, i, mappedValue);
-      }
+            for (var i = 0; i < argsLength; i++) {
+                if (!(i in args))
+                    continue;
+                var mappedValue = @wrap.@call(@undefined, args[i], i, args);
+                @putByValDirect(wrappedArgs, i, mappedValue);
+            }
 
-      const result = target.@apply(@undefined, wrappedArgs);
-      return @wrap(result);
-    };
-    delete wrapped['name'];
-    delete wrapped['length'];
-    return wrapped;
-  } else if (@isObject(target)) {
-    @throwTypeError("value passing between realms must be callable or primitive");
-  }
-  return target;
+            const result = target.@apply(@undefined, wrappedArgs);
+            return @wrap(result);
+        };
+        delete wrapped['name'];
+        delete wrapped['length'];
+        return wrapped;
+    } else if (@isObject(target)) {
+        @throwTypeError("value passing between realms must be callable or primitive");
+    }
+    return target;
 }
 
 function evaluate(sourceText)
 {
-  "use strict";
+    "use strict";
 
-  if (!@isShadowRealm(this))
-      @throwTypeError("`%ShadowRealm%.evaluate requires that |this| be a ShadowRealm instance");
+    if (!@isShadowRealm(this))
+        @throwTypeError("`%ShadowRealm%.evaluate requires that |this| be a ShadowRealm instance");
 
-  if (typeof sourceText !== 'string')
-      @throwTypeError("`%ShadowRealm%.evaluate requires that the |sourceText| argument be a string");
+    if (typeof sourceText !== 'string')
+        @throwTypeError("`%ShadowRealm%.evaluate requires that the |sourceText| argument be a string");
 
-  let result = @evalInRealm(this, sourceText)
-  return @wrap(result);
+    let result = @evalInRealm(this, sourceText)
+    return @wrap(result);
 }
 
 function importValue(specifier, exportName)
 {
-  "use strict";
+    "use strict";
 
-  if (!@isShadowRealm(this))
-      @throwTypeError("`%ShadowRealm%.importValue requires that |this| be a ShadowRealm instance");
+    if (!@isShadowRealm(this))
+        @throwTypeError("`%ShadowRealm%.importValue requires that |this| be a ShadowRealm instance");
 
-  let exportNameStr = @toString(exportName);
-  let specifierStr = @toString(specifier);
+    let exportNameStr = @toString(exportName);
+    let specifierStr = @toString(specifier);
 
-  let lookupBinding = (module) => {
-    let lookup = module[exportNameStr]
-    if (lookup === @undefined)
-        @throwTypeError("%ShadowRealm%.importValue requires |exportName| to exist in the |specifier|");
+    let lookupBinding = (module) => {
+        let lookup = module[exportNameStr]
+        if (lookup === @undefined)
+            @throwTypeError("%ShadowRealm%.importValue requires |exportName| to exist in the |specifier|");
 
-    return @wrap(lookup);
-  };
-  let crossRealmThrow = (error) => {
-    // re-throw because import issues raise errors using the realm's global object
-    @throwTypeError(@toString(error));
-  };
+        return @wrap(lookup);
+    };
 
-  return @importInRealm(this, specifierStr).@then(lookupBinding, crossRealmThrow);
+    let crossRealmThrow = (error) => {
+        // re-throw because import issues raise errors using the realm's global object
+        @throwTypeError(@toString(error));
+    };
+
+    return @importInRealm(this, specifierStr).@then(lookupBinding, crossRealmThrow);
 }

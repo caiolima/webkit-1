@@ -1,24 +1,24 @@
 var callCount = 0;
 
 function putInGlobal(key, val) {
-  callCount++;
-  globalThis.key = val;
+    callCount++;
+    globalThis.key = val;
 }
 
 function getFromGlobal(key) {
-  callCount++;
-  return globalThis.key;
+    callCount++;
+    return globalThis.key;
 }
 
 var anObject = new Object();
 
 function getAnObject() {
-  callCount++;
-  return anObject;
+    callCount++;
+    return anObject;
 }
 
 function getCallCount() {
-  return callCount;
+    return callCount;
 }
 
 var answer = 6;

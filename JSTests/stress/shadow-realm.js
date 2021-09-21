@@ -34,4 +34,3 @@ function shouldBe(actual, expected) {
     shouldBe(shadowRealmLength.writable, false);
     shouldBe(shadowRealmLength.configurable, true);
 }
-

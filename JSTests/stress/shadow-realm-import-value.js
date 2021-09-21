@@ -111,13 +111,11 @@ async function shouldThrowAsync(func, errorType) {
         );
     }
 
-
     // trigger JIT
     {
-        async function doImport(realm, s)
+        function doImport(realm, s)
         {
-            let innerGetCallCount = await realm.importValue(importPath, s);
-            return innerGetCallCount();
+            return realm.importValue(importPath, s);
         }
 
         noInline(doImport);
@@ -125,7 +123,7 @@ async function shouldThrowAsync(func, errorType) {
         let realm = new ShadowRealm();
         for (var i = 0; i < 10000; ++i) {
             let result = await doImport(realm, "getCallCount");
-            shouldBe(result, 0);
+            shouldBe(result(), 0);
         }
     }
 }()).catch((error) => {
@@ -148,4 +146,3 @@ async function shouldThrowAsync(func, errorType) {
     shouldBe(importValueLength.writable, false);
     shouldBe(importValueLength.configurable, true);
 }
-

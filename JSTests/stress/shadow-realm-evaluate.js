@@ -34,7 +34,6 @@ function shouldThrow(func, errorType, assertionFn) {
     shouldBe(otherRealm.evaluate("globalThis.x"), undefined);
 }
 
-
 // accessing `globalThis` within and outside of a shadow realm
 {
     let realm = new ShadowRealm();
@@ -139,5 +138,4 @@ function shouldThrow(func, errorType, assertionFn) {
     shouldBe(evaluateLength.enumerable, false);
     shouldBe(evaluateLength.writable, false);
     shouldBe(evaluateLength.configurable, true);
-
 }

@@ -74,7 +74,6 @@ IndirectEvalExecutable* IndirectEvalExecutable::createSafe(JSGlobalObject* globa
         resultingError = error->toErrorObject(globalObject, source);
     };
     return createImpl(globalObject, source, derivedContextType, isArrowFunctionContext, evalContextType, handleError);
-
 }
 
 IndirectEvalExecutable* IndirectEvalExecutable::create(JSGlobalObject* globalObject, const SourceCode& source, DerivedContextType derivedContextType, bool isArrowFunctionContext, EvalContextType evalContextType)
