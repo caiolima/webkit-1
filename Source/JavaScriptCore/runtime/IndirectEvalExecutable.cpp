@@ -36,7 +36,7 @@ namespace JSC {
 
 
 template<typename ErrorHandlerFunctor>
-IndirectEvalExecutable* IndirectEvalExecutable::createInner(JSGlobalObject* globalObject, const SourceCode& source, DerivedContextType derivedContextType, bool isArrowFunctionContext, EvalContextType evalContextType, ErrorHandlerFunctor errorHandler)
+inline IndirectEvalExecutable* IndirectEvalExecutable::createImpl(JSGlobalObject* globalObject, const SourceCode& source, DerivedContextType derivedContextType, bool isArrowFunctionContext, EvalContextType evalContextType, ErrorHandlerFunctor errorHandler)
 {
     VM& vm = globalObject->vm();
     auto scope = DECLARE_THROW_SCOPE(vm);
@@ -73,7 +73,7 @@ IndirectEvalExecutable* IndirectEvalExecutable::createSafe(JSGlobalObject* globa
     auto handleError = [&](ThrowScope*, const SourceCode& source, ParserError* error) {
         resultingError = error->toErrorObject(globalObject, source);
     };
-    return createInner(globalObject, source, derivedContextType, isArrowFunctionContext, evalContextType, handleError);
+    return createImpl(globalObject, source, derivedContextType, isArrowFunctionContext, evalContextType, handleError);
 
 }
 
@@ -82,7 +82,7 @@ IndirectEvalExecutable* IndirectEvalExecutable::create(JSGlobalObject* globalObj
     auto handleError = [&](ThrowScope* scope, const SourceCode& source, ParserError* error) {
         throwVMError(globalObject, *scope, error->toErrorObject(globalObject, source));
     };
-    return createInner(globalObject, source, derivedContextType, isArrowFunctionContext, evalContextType, handleError);
+    return createImpl(globalObject, source, derivedContextType, isArrowFunctionContext, evalContextType, handleError);
 }
 
 constexpr bool inStrictContext = false;

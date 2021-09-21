@@ -98,8 +98,6 @@ JSC_DEFINE_HOST_FUNCTION(evalInRealm, (JSGlobalObject* globalObject, CallFrame* 
 
     JSValue evalArg = callFrame->argument(1);
     // eval code adapted from JSGlobalObjecFunctions::globalFuncEval
-    if (!evalArg.isString())
-        return JSValue::encode(evalArg);
     String s = asString(evalArg)->value(globalObject);
     RETURN_IF_EXCEPTION(scope, encodedJSValue());
 

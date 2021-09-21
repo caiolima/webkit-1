@@ -35,7 +35,7 @@ public:
     static IndirectEvalExecutable* createSafe(JSGlobalObject*, const SourceCode&, DerivedContextType, bool isArrowFunctionContext, EvalContextType, NakedPtr<JSObject>&);
 private:
     template<typename ErrorHandlerFunctor>
-    static IndirectEvalExecutable* createInner(JSGlobalObject*, const SourceCode&, DerivedContextType, bool isArrowFunctionContext, EvalContextType, ErrorHandlerFunctor);
+    inline static IndirectEvalExecutable* createImpl(JSGlobalObject*, const SourceCode&, DerivedContextType, bool isArrowFunctionContext, EvalContextType, ErrorHandlerFunctor);
 
     IndirectEvalExecutable(JSGlobalObject*, const SourceCode&, DerivedContextType, bool isArrowFunctionContext, EvalContextType);
 };
