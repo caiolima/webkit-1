@@ -50,10 +50,9 @@ void ShadowRealmConstructor::finishCreation(VM& vm, ShadowRealmPrototype* shadow
     putDirectWithoutTransition(vm, vm.propertyNames->prototype, shadowRealmPrototype, PropertyAttribute::DontEnum | PropertyAttribute::DontDelete | PropertyAttribute::ReadOnly);
 }
 
-JSObject* constructShadowRealm(JSGlobalObject* globalObject, JSValue, const ArgList&)
+static JSObject* constructShadowRealm(JSGlobalObject* globalObject, JSValue, const ArgList&)
 {
     VM& vm = globalObject->vm();
-    auto scope = DECLARE_THROW_SCOPE(vm);
     Structure* shadowRealmStructure = ShadowRealmObject::createStructure(vm, globalObject, globalObject->shadowRealmPrototype());
     return ShadowRealmObject::create(vm, shadowRealmStructure, globalObject->globalObjectMethodTable());
 }
