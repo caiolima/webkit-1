@@ -3513,3 +3513,10 @@ op(fuzzer_return_early_from_loop_hint, macro ()
     loadp CodeBlock::m_globalObject[t0], t0
     doReturn()
 end)
+
+llintOpWithMetadata(op_object_spread, OpObjectSpread, macro (size, get, dispatch, metadata, return)
+.opObjectSpreadSlow:
+    callSlowPath(_llint_slow_path_object_spread)
+    dispatch()
+end)
+

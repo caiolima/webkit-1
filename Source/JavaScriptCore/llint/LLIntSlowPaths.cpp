@@ -2222,6 +2222,18 @@ LLINT_SLOW_PATH_DECL(slow_path_put_to_scope)
     LLINT_END();
 }
 
+LLINT_SLOW_PATH_DECL(slow_path_object_spread)
+{
+    LLINT_BEGIN();
+
+    // auto bytecode = pc->as<OpObjectSpread>();
+    // auto& metadata = bytecode.metadata(codeBlock);
+
+    CRASH();
+
+    LLINT_END();    
+}
+
 LLINT_SLOW_PATH_DECL(slow_path_retrieve_and_clear_exception_if_catchable)
 {
     LLINT_BEGIN();

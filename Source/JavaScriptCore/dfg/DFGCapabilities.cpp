@@ -374,6 +374,7 @@ CapabilityLevel capabilityLevel(OpcodeID opcodeID, CodeBlock* codeBlock, const J
     case wasm_trampoline_wasm_call_indirect_no_tls:
     case wasm_trampoline_wasm_call_ref:
     case wasm_trampoline_wasm_call_ref_no_tls:
+    case op_object_spread:
         return CannotCompile;
     }
     return CannotCompile;

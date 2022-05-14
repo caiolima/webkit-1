@@ -226,6 +226,7 @@ void computeUsesForBytecodeIndexImpl(VirtualRegister scopeRegister, const JSInst
     USES(OpPutPrivateName, base, property, value)
     USES(OpSetPrivateBrand, base, brand)
     USES(OpCheckPrivateBrand, base, brand)
+    USES(OpObjectSpread, dst, src)
     USES(OpInByVal, base, property)
     USES(OpHasPrivateName, base, property)
     USES(OpHasPrivateBrand, base, brand)
@@ -400,6 +401,7 @@ void computeDefsForBytecodeIndexImpl(unsigned numVars, const JSInstruction* inst
     case op_put_private_name:
     case op_set_private_brand:
     case op_check_private_brand:
+    case op_object_spread:
     case op_put_internal_field:
     case op_define_data_property:
     case op_define_accessor_property:

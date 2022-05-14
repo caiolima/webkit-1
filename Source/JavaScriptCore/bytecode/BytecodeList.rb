@@ -236,6 +236,16 @@ op :new_array_with_spread,
         bitVector: unsigned,
     }
 
+op :object_spread,
+    args: {
+        dst: VirtualRegister,
+        src: VirtualRegister,
+    },
+    metadata: {
+        oldStructureID: StructureID,
+        newStructureID: StructureID,
+    }
+
 op :spread,
     args: {
         dst: VirtualRegister,

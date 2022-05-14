@@ -2764,6 +2764,12 @@ RegisterID* BytecodeGenerator::emitGetPrototypeOf(RegisterID* dst, RegisterID* v
     return dst;
 }
 
+RegisterID* BytecodeGenerator::emitObjectSpread(RegisterID* dst, RegisterID* src)
+{
+    OpObjectSpread::emit(this, dst, src);
+    return dst;
+}
+
 RegisterID* BytecodeGenerator::emitPutByVal(RegisterID* base, RegisterID* property, RegisterID* value)
 {
     OpPutByVal::emit(this, base, property, value, ecmaMode());

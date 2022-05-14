@@ -509,6 +509,7 @@ bool CodeBlock::finishCreation(VM& vm, ScriptExecutable* ownerExecutable, Unlink
 
         LINK(OpSetPrivateBrand)
         LINK(OpCheckPrivateBrand)
+        LINK(OpObjectSpread)
 
         LINK(OpNewArray)
         LINK(OpNewArrayWithSize)

@@ -5757,14 +5757,16 @@ RegisterID* ObjectSpreadExpressionNode::emitBytecode(BytecodeGenerator& generato
     RefPtr<RegisterID> src = generator.newTemporary();
     generator.emitNode(src.get(), m_expression);
     
-    RefPtr<RegisterID> copyDataProperties = generator.moveLinkTimeConstant(nullptr, LinkTimeConstant::copyDataProperties);
-    
-    CallArguments args(generator, nullptr, 1);
-    generator.move(args.thisRegister(), dst);
-    generator.move(args.argumentRegister(0), src.get());
-    
-    // This must be non-tail-call because @copyDataProperties accesses caller-frame.
-    generator.emitCall(generator.newTemporary(), copyDataProperties.get(), NoExpectedFunction, args, divot(), divotStart(), divotEnd(), DebuggableCall::No);
+    generator.emitObjectSpread(dst, src.get());
+
+    // RefPtr<RegisterID> copyDataProperties = generator.moveLinkTimeConstant(nullptr, LinkTimeConstant::copyDataProperties);
+    // 
+    // CallArguments args(generator, nullptr, 1);
+    // generator.move(args.thisRegister(), dst);
+    // generator.move(args.argumentRegister(0), src.get());
+    // 
+    // // This must be non-tail-call because @copyDataProperties accesses caller-frame.
+    // generator.emitCall(generator.newTemporary(), copyDataProperties.get(), NoExpectedFunction, args, divot(), divotStart(), divotEnd(), DebuggableCall::No);
     
     return dst;
 }
