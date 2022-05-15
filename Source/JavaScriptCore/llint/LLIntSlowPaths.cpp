@@ -2222,16 +2222,99 @@ LLINT_SLOW_PATH_DECL(slow_path_put_to_scope)
     LLINT_END();
 }
 
+static bool canPerformFastPropertyEnumerationForCopyDataProperties(Structure* structure)
+{
+    if (structure->typeInfo().overridesGetOwnPropertySlot())
+        return false;
+    if (structure->typeInfo().overridesAnyFormOfGetOwnPropertyNames())
+        return false;
+    // FIXME: Indexed properties can be handled.
+    // https://bugs.webkit.org/show_bug.cgi?id=185358
+    if (hasIndexedProperties(structure->indexingType()))
+        return false;
+    if (structure->hasGetterSetterProperties())
+        return false;
+    if (structure->hasCustomGetterSetterProperties())
+        return false;
+    if (structure->isUncacheableDictionary())
+        return false;
+    return true;
+};
+
 LLINT_SLOW_PATH_DECL(slow_path_object_spread)
 {
     LLINT_BEGIN();
 
-    // auto bytecode = pc->as<OpObjectSpread>();
-    // auto& metadata = bytecode.metadata(codeBlock);
+    auto bytecode = pc->as<OpObjectSpread>();
 
-    CRASH();
+    JSValue targetValue = getOperand(callFrame, bytecode.m_dst);;
+    JSFinalObject* target = jsCast<JSFinalObject*>(asObject(targetValue));
 
-    LLINT_END();    
+    JSValue sourceValue = getOperand(callFrame, bytecode.m_src);;
+    if (sourceValue.isUndefinedOrNull())
+        LLINT_END();
+
+    JSObject* source = sourceValue.toObject(globalObject);
+    LLINT_CHECK_EXCEPTION();
+
+    if (canPerformFastPropertyEnumerationForCopyDataProperties(source->structure())) {
+        Vector<RefPtr<UniquedStringImpl>, 8> properties;
+        MarkedArgumentBuffer values;
+
+        // FIXME: It doesn't seem like we should have to do this in two phases, but
+        // we're running into crashes where it appears that source is transitioning
+        // under us, and even ends up in a state where it has a null butterfly. My
+        // leading hypothesis here is that we fire some value replacement watchpoint
+        // that ends up transitioning the structure underneath us.
+        // https://bugs.webkit.org/show_bug.cgi?id=187837
+
+        source->structure()->forEachProperty(vm, [&] (const PropertyTableEntry& entry) -> bool {
+            PropertyName propertyName(entry.key());
+            if (propertyName.isPrivateName())
+                return true;
+
+            if (entry.attributes() & PropertyAttribute::DontEnum)
+                return true;
+
+            properties.append(entry.key());
+            values.appendWithCrashOnOverflow(source->getDirect(entry.offset()));
+            return true;
+        });
+
+        LLINT_CHECK_EXCEPTION();
+
+        for (size_t i = 0; i < properties.size(); ++i) {
+            // FIXME: We could put properties in a batching manner to accelerate CopyDataProperties more.
+            // https://bugs.webkit.org/show_bug.cgi?id=185358
+            target->putDirect(vm, properties[i].get(), values.at(i));
+        }
+    } else {
+        PropertyNameArray propertyNames(vm, PropertyNameMode::StringsAndSymbols, PrivateSymbolMode::Exclude);
+        source->methodTable()->getOwnPropertyNames(source, globalObject, propertyNames, DontEnumPropertiesMode::Include);
+        LLINT_CHECK_EXCEPTION();
+
+        for (const auto& propertyName : propertyNames) {
+            PropertySlot slot(source, PropertySlot::InternalMethodType::GetOwnProperty);
+            bool hasProperty = source->methodTable()->getOwnPropertySlot(source, globalObject, propertyName, slot);
+            LLINT_CHECK_EXCEPTION();
+            if (!hasProperty)
+                continue;
+            if (slot.attributes() & PropertyAttribute::DontEnum)
+                continue;
+
+            JSValue value;
+            if (LIKELY(!slot.isTaintedByOpaqueObject()))
+                value = slot.getValue(globalObject, propertyName);
+            else
+                value = source->get(globalObject, propertyName);
+            LLINT_CHECK_EXCEPTION();
+
+            target->putDirectMayBeIndex(globalObject, propertyName, value);
+            LLINT_CHECK_EXCEPTION();
+        }
+    }
+
+    LLINT_END();
 }
 
 LLINT_SLOW_PATH_DECL(slow_path_retrieve_and_clear_exception_if_catchable)
