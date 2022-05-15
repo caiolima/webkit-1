@@ -60,6 +60,7 @@
 #include "MarkedSpace.h"
 #include "MaxFrameExtentForSlowPathCall.h"
 #include "NativeExecutable.h"
+#include "ObjectSpreadMetadata.h"
 #include "PrivateFieldPutKind.h"
 #include "ProtoCallFrame.h"
 #include "PutByIdFlags.h"

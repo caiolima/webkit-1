@@ -139,6 +139,7 @@ module DSL
 #include "Instruction.h"
 #include "IterationModeMetadata.h"
 #include "JSPropertyNameEnumerator.h"
+#include "ObjectSpreadMetadata.h"
 #include "Opcode.h"
 #include "PrivateFieldPutKind.h"
 #include "PutByStatus.h"

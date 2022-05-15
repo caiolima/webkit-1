@@ -1274,6 +1274,7 @@
 		862553D216136E1A009F17D0 /* JSProxy.h in Headers */ = {isa = PBXBuildFile; fileRef = 862553CF16136AA5009F17D0 /* JSProxy.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		86281EF025B6160000367004 /* CheckPrivateBrandVariant.h in Headers */ = {isa = PBXBuildFile; fileRef = 86281EEF25B6160000367004 /* CheckPrivateBrandVariant.h */; };
 		86281EF425B61AF000367004 /* CheckPrivateBrandStatus.h in Headers */ = {isa = PBXBuildFile; fileRef = 86281EF325B61AF000367004 /* CheckPrivateBrandStatus.h */; };
+		863AF8C32830B578005D8CBE /* ObjectSpreadMetadata.h in Headers */ = {isa = PBXBuildFile; fileRef = 863AF8C22830B578005D8CBE /* ObjectSpreadMetadata.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		863B23E00FC6118900703AA4 /* MacroAssemblerCodeRef.h in Headers */ = {isa = PBXBuildFile; fileRef = 863B23DF0FC60E6200703AA4 /* MacroAssemblerCodeRef.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		863FBC5A25B093B900F6C930 /* WasmValueLocation.h in Headers */ = {isa = PBXBuildFile; fileRef = 863FBC5825B093B900F6C930 /* WasmValueLocation.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		865A30F1135007E100CDB49E /* JSCJSValueInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = 865A30F0135007E100CDB49E /* JSCJSValueInlines.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -4408,6 +4409,7 @@
 		86281EF125B6165E00367004 /* CheckPrivateBrandVariant.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CheckPrivateBrandVariant.cpp; sourceTree = "<group>"; };
 		86281EF325B61AF000367004 /* CheckPrivateBrandStatus.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CheckPrivateBrandStatus.h; sourceTree = "<group>"; };
 		86281EF525B61B0600367004 /* CheckPrivateBrandStatus.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CheckPrivateBrandStatus.cpp; sourceTree = "<group>"; };
+		863AF8C22830B578005D8CBE /* ObjectSpreadMetadata.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjectSpreadMetadata.h; sourceTree = "<group>"; };
 		863B23DF0FC60E6200703AA4 /* MacroAssemblerCodeRef.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MacroAssemblerCodeRef.h; sourceTree = "<group>"; };
 		863C6D981521111200585E4E /* YarrCanonicalizeUCS2.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = YarrCanonicalizeUCS2.cpp; path = yarr/YarrCanonicalizeUCS2.cpp; sourceTree = "<group>"; };
 		863C6D991521111200585E4E /* YarrCanonicalize.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = YarrCanonicalize.h; path = yarr/YarrCanonicalize.h; sourceTree = "<group>"; };
@@ -9120,6 +9122,7 @@
 				0F426A461460CBAB00131F8F /* VirtualRegister.h */,
 				0F919D2215853CDE004A4E7D /* Watchpoint.cpp */,
 				0F919D2315853CDE004A4E7D /* Watchpoint.h */,
+				863AF8C22830B578005D8CBE /* ObjectSpreadMetadata.h */,
 			);
 			path = bytecode;
 			sourceTree = "<group>";
@@ -10634,6 +10637,7 @@
 				865A30F1135007E100CDB49E /* JSCJSValueInlines.h in Headers */,
 				BC18C41D0E16F5CD00B34460 /* JSClassRef.h in Headers */,
 				86E3C613167BABD7006D760A /* JSContext.h in Headers */,
+				863AF8C32830B578005D8CBE /* ObjectSpreadMetadata.h in Headers */,
 				86E3C617167BABEE006D760A /* JSContextInternal.h in Headers */,
 				A58C024218E4A41A00032BC5 /* JSContextPrivate.h in Headers */,
 				BC18C41E0E16F5CD00B34460 /* JSContextRef.h in Headers */,

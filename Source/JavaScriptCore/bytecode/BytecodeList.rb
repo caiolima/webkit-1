@@ -46,6 +46,7 @@ types [
     :JSType,
     :JSValue,
     :ResultType,
+    :ObjectSpreadMetadata,
     :OperandTypes,
     :PrivateFieldPutKind,
     :ProfileTypeBytecodeFlag,
@@ -244,6 +245,7 @@ op :object_spread,
     metadata: {
         oldStructureID: StructureID,
         newStructureID: StructureID,
+        cachedOffsets: ObjectSpreadMetadata,
     }
 
 op :spread,

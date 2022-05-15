@@ -2246,9 +2246,11 @@ LLINT_SLOW_PATH_DECL(slow_path_object_spread)
     LLINT_BEGIN();
 
     auto bytecode = pc->as<OpObjectSpread>();
+    auto& metadata = bytecode.metadata(codeBlock);
 
     JSValue targetValue = getOperand(callFrame, bytecode.m_dst);;
     JSFinalObject* target = jsCast<JSFinalObject*>(asObject(targetValue));
+    Structure* oldStructure = target->structure();
 
     JSValue sourceValue = getOperand(callFrame, bytecode.m_src);;
     if (sourceValue.isUndefinedOrNull())
@@ -2259,6 +2261,8 @@ LLINT_SLOW_PATH_DECL(slow_path_object_spread)
 
     if (canPerformFastPropertyEnumerationForCopyDataProperties(source->structure())) {
         Vector<RefPtr<UniquedStringImpl>, 8> properties;
+        Vector<PropertyOffset, 8> srcOffsets;
+        Vector<PropertyOffset, 8> dstOffsets;
         MarkedArgumentBuffer values;
 
         // FIXME: It doesn't seem like we should have to do this in two phases, but
@@ -2277,16 +2281,58 @@ LLINT_SLOW_PATH_DECL(slow_path_object_spread)
                 return true;
 
             properties.append(entry.key());
+            srcOffsets.append(entry.offset());
             values.appendWithCrashOnOverflow(source->getDirect(entry.offset()));
             return true;
         });
 
         LLINT_CHECK_EXCEPTION();
 
+        bool hasTransition = false;
+        bool areCacheablePuts = true;
+
         for (size_t i = 0; i < properties.size(); ++i) {
-            // FIXME: We could put properties in a batching manner to accelerate CopyDataProperties more.
-            // https://bugs.webkit.org/show_bug.cgi?id=185358
-            target->putDirect(vm, properties[i].get(), values.at(i));
+            PutPropertySlot slot(targetValue);
+            target->putDirect(vm, properties[i].get(), values.at(i), slot);
+
+            dstOffsets.append(slot.cachedOffset());
+
+            hasTransition = hasTransition || slot.type() == PutPropertySlot::NewProperty;
+            areCacheablePuts = areCacheablePuts && slot.isCacheablePut() && slot.base() == target;
+        }
+
+        // FIXME: we need to validate the conditions of target
+        if (Options::useLLIntICs()
+            && areCacheablePuts
+            && oldStructure->propertyAccessesAreCacheable()) {
+
+            // Start out by clearing out the old cache.
+            metadata.m_oldStructureID = StructureID();
+            metadata.m_newStructureID = StructureID();
+            metadata.m_cachedOffsets.clear();
+
+            Structure* newStructure = target->structure();
+
+            if (newStructure->propertyAccessesAreCacheable()) {
+                if (hasTransition) {
+                    GCSafeConcurrentJSLocker locker(codeBlock->m_lock, vm);
+                    if (!newStructure->isDictionary() && oldStructure->outOfLineCapacity() == newStructure->outOfLineCapacity()) {
+                        // ASSERT(oldStructure->transitionWatchpointSetHasBeenInvalidated());
+
+                        bool sawPolyProto = false;
+                        auto result = normalizePrototypeChain(globalObject, target, sawPolyProto);
+                        if (result != InvalidPrototypeChain && !sawPolyProto) {
+                            ASSERT(oldStructure->isObject());
+                            metadata.m_oldStructureID = oldStructure->id();
+                            metadata.m_newStructureID = newStructure->id();
+                            metadata.m_cachedOffsets.fillOffsets(dstOffsets, srcOffsets);
+                            vm.writeBarrier(codeBlock);
+                        }
+                    }
+                } else {
+                    CRASH();
+                }
+            }
         }
     } else {
         PropertyNameArray propertyNames(vm, PropertyNameMode::StringsAndSymbols, PrivateSymbolMode::Exclude);
