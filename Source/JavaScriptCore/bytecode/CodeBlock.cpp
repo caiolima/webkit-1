@@ -1201,6 +1201,19 @@ void CodeBlock::propagateTransitions(const ConcurrentJSLocker&, Visitor& visitor
                 }
             });
 
+            m_metadata->forEach<OpObjectSpread>([&] (auto& metadata) {
+                StructureID oldStructureID = metadata.m_oldStructureID;
+                StructureID newStructureID = metadata.m_newStructureID;
+                if (!oldStructureID || !newStructureID)
+                    return;
+
+                Structure* oldStructure = oldStructureID.decode();
+                if (visitor.isMarked(oldStructure)) {
+                    Structure* newStructure = newStructureID.decode();
+                    visitor.appendUnbarriered(newStructure);
+                }
+            });
+
             m_metadata->forEach<OpPutPrivateName>([&] (auto& metadata) {
                 StructureID oldStructureID = metadata.m_oldStructureID;
                 StructureID newStructureID = metadata.m_newStructureID;
@@ -1426,6 +1439,20 @@ void CodeBlock::finalizeLLIntInlineCaches()
             metadata.m_offset = 0;
             metadata.m_newStructureID = StructureID();
             metadata.m_structureChain.clear();
+        });
+
+        m_metadata->forEach<OpObjectSpread>([&] (auto& metadata) {
+            StructureID oldStructureID = metadata.m_oldStructureID;
+            StructureID newStructureID = metadata.m_newStructureID;
+            StructureID srcStructureID = metadata.m_srcStructureID;
+            if ((!oldStructureID || vm.heap.isMarked(oldStructureID.decode()))
+                && (!newStructureID || vm.heap.isMarked(newStructureID.decode()))
+                && (!srcStructureID || vm.heap.isMarked(srcStructureID.decode())))
+                return;
+            dataLogLnIf(Options::verboseOSR(), "Clearing LLInt object spread transition.");
+            metadata.m_oldStructureID = StructureID();
+            metadata.m_newStructureID = StructureID();
+            metadata.m_cachedOffsets.clear();
         });
 
         m_metadata->forEach<OpPutPrivateName>([&] (auto& metadata) {

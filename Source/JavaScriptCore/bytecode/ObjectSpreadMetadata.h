@@ -27,48 +27,45 @@
 
 namespace JSC {
 
+struct CachedOffsetEntry {
+    PropertyOffset srcOffset;
+    PropertyOffset dstOffset;
+};
+
 struct ObjectSpreadMetadata {
     ObjectSpreadMetadata()
     {
-        cachedSrcOffsets = nullptr;
-        cachedDstOffsets = nullptr;
-        size = 0;
+        cachedOffsets = nullptr;
     }
 
     void fillOffsets(Vector<PropertyOffset, 8>& dstOffsets, Vector<PropertyOffset, 8>& srcOffsets)
     {
         ASSERT(dstOffsets.size() == srcOffsets.size());
-        ASSERT(cachedSrcOffsets == nullptr);
-        ASSERT(cachedDstOffsets == nullptr);
-        ASSERT(!size);
+        ASSERT(cachedOffsets == nullptr);
 
-        size = dstOffsets.size();
+        auto size = dstOffsets.size();
 
-        cachedDstOffsets = static_cast<PropertyOffset*>(fastMalloc(sizeof(PropertyOffset) * size));
-        cachedSrcOffsets = static_cast<PropertyOffset*>(fastMalloc(sizeof(PropertyOffset) * size));
+        cachedOffsets = static_cast<CachedOffsetEntry*>(fastMalloc(sizeof(CachedOffsetEntry) * size + 1));
 
-        memcpy(cachedDstOffsets, dstOffsets.data(), sizeof(PropertyOffset) * (size));
-        memcpy(cachedSrcOffsets, srcOffsets.data(), sizeof(PropertyOffset) * (size));
+        for (unsigned i = 0; i < size; i++) {
+            cachedOffsets[i].dstOffset = dstOffsets[i];
+            cachedOffsets[i].srcOffset = srcOffsets[i];
+        }
+        cachedOffsets[size].dstOffset = -1;
+        cachedOffsets[size].srcOffset = -1;
     }
 
     void clear();
 
-    PropertyOffset* cachedSrcOffsets;
-    PropertyOffset* cachedDstOffsets;
-    unsigned size;
+    CachedOffsetEntry* cachedOffsets;
 };
 
 inline void ObjectSpreadMetadata::clear()
 {
-    if (cachedSrcOffsets)
-        fastFree(cachedSrcOffsets);
+    if (cachedOffsets)
+        fastFree(cachedOffsets);
 
-    if (cachedDstOffsets)
-        fastFree(cachedDstOffsets);
-
-    cachedSrcOffsets = nullptr;
-    cachedDstOffsets = nullptr;
-    size = 0;
+    cachedOffsets = nullptr;
 }
 
 } // namespace JSC

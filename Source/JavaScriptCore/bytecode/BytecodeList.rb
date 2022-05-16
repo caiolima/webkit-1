@@ -245,6 +245,7 @@ op :object_spread,
     metadata: {
         oldStructureID: StructureID,
         newStructureID: StructureID,
+        srcStructureID: StructureID,
         cachedOffsets: ObjectSpreadMetadata,
     }
 

@@ -3515,6 +3515,48 @@ op(fuzzer_return_early_from_loop_hint, macro ()
 end)
 
 llintOpWithMetadata(op_object_spread, OpObjectSpread, macro (size, get, dispatch, metadata, return)
+    get(m_dst, t3)
+    loadConstantOrVariableCell(size, t3, t0, .opObjectSpreadSlow)
+    metadata(t5, t2)
+    loadi OpObjectSpread::Metadata::m_oldStructureID[t5], t2
+    bineq t2, JSCell::m_structureID[t0], .opObjectSpreadSlow
+
+    get(m_src, t3)
+    loadConstantOrVariableCell(size, t3, t1, .opObjectSpreadSlow)
+    loadi OpObjectSpread::Metadata::m_srcStructureID[t5], t2
+    bineq t2, JSCell::m_structureID[t1], .opObjectSpreadSlow
+
+    loadi OpObjectSpread::Metadata::m_newStructureID[t5], t2
+    storei t2, JSCell::m_structureID[t0]
+    writeBarrierOnOperand(size, get, m_dst)
+
+    # Reload metadata into t5
+    metadata(t5, t2)
+
+    # We now have t0 with dst object and t1 with src object and we need
+    # to copy properties from one side to other
+    loadp OpObjectSpread::Metadata::m_cachedOffsets.cachedOffsets[t5], t3
+
+    .opObjectSpreadLoop:
+    # Reload dst into t0
+    get(m_dst, t2)
+    loadConstantOrVariable(size, t2, t0)
+    # Reload src into t1
+    get(m_src, t2)
+    loadConstantOrVariable(size, t2, t1)
+
+    loadi CachedOffsetEntry::srcOffset[t3], t2
+    loadPropertyAtVariableOffset(t2, t1, t5)
+    loadi CachedOffsetEntry::dstOffset[t3], t2
+    storePropertyAtVariableOffset(t2, t0, t5)
+
+    addp sizeof CachedOffsetEntry, t3
+    bineq CachedOffsetEntry::srcOffset[t3], -1, .opObjectSpreadLoop 
+
+.opObjectSpreadLoopDone:
+    writeBarrierOnOperand(size, get, m_dst)
+    dispatch()
+
 .opObjectSpreadSlow:
     callSlowPath(_llint_slow_path_object_spread)
     dispatch()

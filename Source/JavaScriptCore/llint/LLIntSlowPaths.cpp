@@ -2309,6 +2309,7 @@ LLINT_SLOW_PATH_DECL(slow_path_object_spread)
             // Start out by clearing out the old cache.
             metadata.m_oldStructureID = StructureID();
             metadata.m_newStructureID = StructureID();
+            metadata.m_srcStructureID = StructureID();
             metadata.m_cachedOffsets.clear();
 
             Structure* newStructure = target->structure();
@@ -2325,6 +2326,7 @@ LLINT_SLOW_PATH_DECL(slow_path_object_spread)
                             ASSERT(oldStructure->isObject());
                             metadata.m_oldStructureID = oldStructure->id();
                             metadata.m_newStructureID = newStructure->id();
+                            metadata.m_srcStructureID = source->structure()->id();
                             metadata.m_cachedOffsets.fillOffsets(dstOffsets, srcOffsets);
                             vm.writeBarrier(codeBlock);
                         }

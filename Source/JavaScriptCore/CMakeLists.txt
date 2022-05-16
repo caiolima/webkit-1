@@ -647,6 +647,7 @@ set(JavaScriptCore_PRIVATE_FRAMEWORK_HEADERS
     bytecode/MetadataTable.h
     bytecode/ObjectAllocationProfile.h
     bytecode/ObjectPropertyCondition.h
+    bytecode/ObjectSpreadMetadata.h
     bytecode/Opcode.h
     bytecode/OpcodeSize.h
     bytecode/Operands.h
