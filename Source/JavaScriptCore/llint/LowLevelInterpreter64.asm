@@ -3537,7 +3537,7 @@ llintOpWithMetadata(op_object_spread, OpObjectSpread, macro (size, get, dispatch
     # to copy properties from one side to other
     loadp OpObjectSpread::Metadata::m_cachedOffsets.cachedOffsets[t5], t3
 
-    .opObjectSpreadLoop:
+.opObjectSpreadLoop:
     # Reload dst into t0
     get(m_dst, t2)
     loadConstantOrVariable(size, t2, t0)

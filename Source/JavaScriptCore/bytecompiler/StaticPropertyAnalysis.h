@@ -40,6 +40,8 @@ public:
 
     void addPropertyIndex(unsigned propertyIndex) { m_propertyIndexes.add(propertyIndex); }
 
+    void addObjectSpread() { m_objectSpreadCount++; }
+
     void record();
 
     int propertyIndexCount() { return m_propertyIndexes.size(); }
@@ -53,6 +55,7 @@ private:
     JSInstructionStream::MutableRef m_instructionRef;
     typedef HashSet<unsigned, WTF::IntHash<unsigned>, WTF::UnsignedWithZeroKeyHashTraits<unsigned>> PropertyIndexSet;
     PropertyIndexSet m_propertyIndexes;
+    unsigned m_objectSpreadCount = 0;
 };
 
 } // namespace JSC

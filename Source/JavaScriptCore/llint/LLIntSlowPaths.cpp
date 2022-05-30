@@ -2259,6 +2259,12 @@ LLINT_SLOW_PATH_DECL(slow_path_object_spread)
     JSObject* source = sourceValue.toObject(globalObject);
     LLINT_CHECK_EXCEPTION();
 
+    // if (oldStructure->id() == metadata.m_oldStructureID
+    //     && metadata.m_srcStructureID == source->structure()->id())
+    //     WTF::dataLog("Cache hit\n");
+    // else
+    //     WTF::dataLog("Cache miss\n");
+
     if (canPerformFastPropertyEnumerationForCopyDataProperties(source->structure())) {
         Vector<RefPtr<UniquedStringImpl>, 8> properties;
         Vector<PropertyOffset, 8> srcOffsets;
@@ -2315,6 +2321,7 @@ LLINT_SLOW_PATH_DECL(slow_path_object_spread)
             Structure* newStructure = target->structure();
 
             if (newStructure->propertyAccessesAreCacheable()) {
+                // WTF::dataLog("Cached spread size: ", dstOffsets.size(), "\n");
                 if (hasTransition) {
                     GCSafeConcurrentJSLocker locker(codeBlock->m_lock, vm);
                     if (!newStructure->isDictionary() && oldStructure->outOfLineCapacity() == newStructure->outOfLineCapacity()) {

@@ -2767,6 +2767,7 @@ RegisterID* BytecodeGenerator::emitGetPrototypeOf(RegisterID* dst, RegisterID* v
 RegisterID* BytecodeGenerator::emitObjectSpread(RegisterID* dst, RegisterID* src)
 {
     OpObjectSpread::emit(this, dst, src);
+    m_staticPropertyAnalyzer.objectSpread(dst);
     return dst;
 }
 
@@ -5420,7 +5421,7 @@ void ForInContext::finalize(BytecodeGenerator& generator, UnlinkedCodeBlockGener
 void StaticPropertyAnalysis::record()
 {
     auto* instruction = m_instructionRef.ptr();
-    auto size = m_propertyIndexes.size();
+    auto size = m_propertyIndexes.size() + m_objectSpreadCount * 8;
     switch (instruction->opcodeID()) {
     case OpNewObject::opcodeID:
         instruction->cast<OpNewObject>()->setInlineCapacity(size, []() {

@@ -38,6 +38,7 @@ public:
     void createThis(RegisterID* dst, JSInstructionStream::MutableRef instructionRef);
     void newObject(RegisterID* dst, JSInstructionStream::MutableRef instructionRef);
     void putById(RegisterID* dst, unsigned propertyIndex); // propertyIndex is an index into a uniqued set of strings.
+    void objectSpread(RegisterID* dst);
     void mov(RegisterID* dst, RegisterID* src);
 
     void kill();
@@ -73,6 +74,12 @@ inline void StaticPropertyAnalyzer::putById(RegisterID* dst, unsigned propertyIn
     if (!analysis)
         return;
     analysis->addPropertyIndex(propertyIndex);
+}
+
+inline void StaticPropertyAnalyzer::objectSpread(RegisterID* dst)
+{
+    StaticPropertyAnalysis* analysis = m_analyses.get(dst->index());
+    analysis->addObjectSpread();
 }
 
 inline void StaticPropertyAnalyzer::mov(RegisterID* dst, RegisterID* src)
