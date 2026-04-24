@@ -95,11 +95,13 @@ public:
     };
 
     enum class ImportEntryType { Single, Namespace };
+    enum class ModulePhase : uint8_t { Evaluation, Defer };
     struct ImportEntry {
         ImportEntryType type;
         Identifier moduleRequest;
         Identifier importName;
         Identifier localName;
+        ModulePhase phase { ModulePhase::Evaluation };
     };
 
     typedef WTF::ListHashSet<RefPtr<UniquedStringImpl>, IdentifierRepHash> OrderedIdentifierSet;
@@ -109,6 +111,7 @@ public:
     struct ModuleRequest {
         Identifier m_specifier;
         RefPtr<ScriptFetchParameters> m_attributes;
+        ModulePhase m_phase { ModulePhase::Evaluation };
 
         ScriptFetchParameters::Type type(ScriptFetchParameters::Type fallback = ScriptFetchParameters::Type::JavaScript) const;
         bool operator==(const ModuleRequest&) const;
@@ -122,7 +125,7 @@ public:
 
     DECLARE_EXPORT_INFO;
 
-    void appendRequestedModule(const Identifier&, RefPtr<ScriptFetchParameters>&&);
+    void appendRequestedModule(const Identifier&, ModulePhase, RefPtr<ScriptFetchParameters>&&);
     void addStarExportEntry(const Identifier&);
     void addImportEntry(const ImportEntry&);
     void addExportEntry(const ExportEntry&);
@@ -193,7 +196,7 @@ public:
 
     AbstractModuleRecord* hostResolveImportedModule(JSGlobalObject*, const Identifier& moduleName);
 
-    JSModuleNamespaceObject* getModuleNamespace(JSGlobalObject*);
+    JSModuleNamespaceObject* getModuleNamespace(JSGlobalObject*, ModulePhase = ModulePhase::Evaluation);
 
     JSPromise* asyncCapability() const;
     void asyncCapability(VM&, JSPromise*);
@@ -264,6 +267,7 @@ private:
     Vector<ModuleRequest> m_requestedModules;
 
     WriteBarrier<JSModuleNamespaceObject> m_moduleNamespaceObject;
+    WriteBarrier<JSModuleNamespaceObject> m_moduleDeferredNamespaceObject;
 
     WriteBarrier<JSPromise> m_asyncCapability;
 

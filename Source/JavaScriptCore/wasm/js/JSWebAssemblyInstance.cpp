@@ -345,12 +345,13 @@ JSWebAssemblyInstance* JSWebAssemblyInstance::tryCreate(VM& vm, Structure* insta
             auto fieldName = Identifier::fromString(vm, makeAtomString(import.field));
             auto result = specifiers.add(moduleName.impl());
             if (result.isNewEntry)
-                moduleRecord->appendRequestedModule(moduleName, nullptr);
+                moduleRecord->appendRequestedModule(moduleName, AbstractModuleRecord::ModulePhase::Evaluation, nullptr);
             moduleRecord->addImportEntry(WebAssemblyModuleRecord::ImportEntry {
                 WebAssemblyModuleRecord::ImportEntryType::Single,
                 moduleName,
                 fieldName,
                 Identifier::fromUid(PrivateName(PrivateName::Description, "WebAssemblyImportName"_s)),
+                AbstractModuleRecord::ModulePhase::Evaluation,
             });
         }
         ASSERT(moduleRecord->importEntries().size() == moduleInformation.imports.size());

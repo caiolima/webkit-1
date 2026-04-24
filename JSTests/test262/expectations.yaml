@@ -824,6 +824,12 @@ test/language/statements/async-generator/yield-star-promise-not-unwrapped.js:
 test/language/statements/async-generator/yield-star-return-then-getter-ticks.js:
   default: 'Test262:AsyncTestFailure:Test262Error: Test262Error: Actual [start, tick 1, tick 2, get then, tick 3, get return, get then] and expected [start, tick 1, get then, tick 2, get return, get then, tick 3] should have the same contents. Ticks for return with thenable getter'
   strict mode: 'Test262:AsyncTestFailure:Test262Error: Test262Error: Actual [start, tick 1, tick 2, get then, tick 3, get return, get then] and expected [start, tick 1, get then, tick 2, get return, get then, tick 3] should have the same contents. Ticks for return with thenable getter'
+test/language/import/import-defer/evaluation-triggers/ignore-private-name-access.js:
+  module: 'Test262Error: Expected a TypeError to be thrown but no exception was thrown at all'
+test/language/import/import-defer/evaluation-triggers/ignore-super-property-set-exported.js:
+  module: 'Test262Error: It does not trigger evaluation Expected SameValue(«1», «0») to be true'
+test/language/import/import-defer/evaluation-triggers/ignore-super-property-set-not-exported.js:
+  module: 'Test262Error: It does not trigger evaluation Expected SameValue(«1», «0») to be true'
 test/language/statements/class/elements/private-class-field-on-nonextensible-objects.js:
   strict mode: 'Test262Error: Expected a TypeError to be thrown but no exception was thrown at all'
 test/language/statements/class/subclass/default-constructor-spread-override.js:

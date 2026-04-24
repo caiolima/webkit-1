@@ -155,6 +155,76 @@ void JSModuleRecord::execute(JSGlobalObject* globalObject, JSPromise* capability
     // 11. Return unused.
 }
 
+bool JSModuleRecord::readyForSyncExecution(JSGlobalObject* globalObject)
+{
+    // Used by ensureDeferredNamespaceEvaluation before it triggers a synchronous
+    // linkAndEvaluateModule on the deferred target. We return false whenever any module
+    // reachable through [[LoadedModules]] either contains Top-Level Await or is already
+    // mid-evaluation (sync or async) — the spec requires throwing a TypeError in that
+    // case rather than running an incomplete synchronous pass over the sub-graph.
+    VM& vm = globalObject->vm();
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
+    UncheckedKeyHashSet<AbstractModuleRecord*> seen;
+    Vector<AbstractModuleRecord*, 8> stack;
+    stack.append(this);
+
+    while (!stack.isEmpty()) {
+        AbstractModuleRecord* current = stack.takeLast();
+        if (!seen.add(current).isNewEntry)
+            continue;
+
+        auto* cyclic = dynamicDowncast<CyclicModuleRecord>(current);
+        if (!cyclic)
+            continue;
+
+        Status status = cyclic->status();
+
+        // Already-evaluated modules are done regardless of whether they contain TLA.
+        // (TLA modules reached via defer are evaluated by GatherAsynchronousTransitiveDependencies
+        // before the deferred namespace is handed to user code, so by the time we get here their
+        // promise has already settled and we just need to treat them as inert.)
+        if (status == Status::Evaluated)
+            continue;
+
+        if (status == Status::New || status == Status::Unlinked || status == Status::Linking)
+            return false;
+        if (status == Status::EvaluatingAsync)
+            return false;
+        if (status == Status::Evaluating) {
+            // Cyclic re-entry on a module whose sync body has already run (executable
+            // was discarded) is fine — we just won't re-run it. Otherwise the sub-graph
+            // is still mid-execution and we can't run more of it synchronously.
+            if (auto* jsModule = dynamicDowncast<JSModuleRecord>(current); jsModule && jsModule->m_moduleProgramExecutable)
+                return false;
+            continue;
+        }
+        // status is Linked — check whether this module is safe to evaluate synchronously.
+        if (cyclic->hasTLA())
+            return false;
+        if (auto* jsModule = dynamicDowncast<JSModuleRecord>(current)) {
+            if (ModuleProgramExecutable* exec = jsModule->m_moduleProgramExecutable.get(); exec && exec->isAsync())
+                return false;
+        }
+
+        // Recurse through the resolved [[LoadedModules]] map. Fall back to
+        // hostResolveImportedModule only if a request somehow isn't in the map yet.
+        for (const auto& request : current->requestedModules()) {
+            auto it = current->loadedModules().find(std::make_pair(request.m_specifier.impl(), request.type()));
+            AbstractModuleRecord* child = nullptr;
+            if (it != current->loadedModules().end())
+                child = it->value.m_module.get();
+            else {
+                child = current->hostResolveImportedModule(globalObject, Identifier::fromUid(vm, request.m_specifier.impl()));
+                RETURN_IF_EXCEPTION(scope, false);
+            }
+            if (child)
+                stack.append(child);
+        }
+    }
+    return true;
+}
+
 ModuleProgramExecutable* JSModuleRecord::getOrMakeExecutable(JSGlobalObject* globalObject)
 {
     ModuleProgramExecutable* executable = m_moduleProgramExecutable.get();

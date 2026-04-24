@@ -62,6 +62,11 @@ public:
     void execute(JSGlobalObject*, JSPromise* = nullptr);
     void executeAsync(JSGlobalObject*);
 
+    // Used by the import-defer proposal. Returns true iff this module and every module
+    // reachable through its [[RequestedModules]] graph can be evaluated synchronously —
+    // i.e. none of them have Top-Level Await and none are currently mid-evaluation.
+    bool readyForSyncExecution(JSGlobalObject*);
+
     const SourceCode& sourceCode() const LIFETIME_BOUND { return m_sourceCode; }
     const VariableEnvironment& declaredVariables() const LIFETIME_BOUND { return m_declaredVariables; }
     const VariableEnvironment& lexicalVariables() const LIFETIME_BOUND { return m_lexicalVariables; }

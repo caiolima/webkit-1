@@ -41,11 +41,24 @@ ModuleAnalyzer::ModuleAnalyzer(JSGlobalObject* globalObject, const Identifier& m
 {
 }
 
-void ModuleAnalyzer::appendRequestedModule(const Identifier& specifier, RefPtr<ScriptFetchParameters>&& attributes)
+void ModuleAnalyzer::appendRequestedModule(const Identifier& specifier, AbstractModuleRecord::ModulePhase phase, RefPtr<ScriptFetchParameters>&& attributes)
 {
-    auto result = m_requestedModules.add(specifier.impl());
-    if (result.isNewEntry)
-        moduleRecord()->appendRequestedModule(specifier, WTF::move(attributes));
+    // If the same specifier is imported with different phases (e.g. once with `import defer`
+    // and once as a normal import), the Evaluation phase wins: we must evaluate it normally.
+    // The module record keeps every appended request entry, so on an "upgrade" we also push the
+    // new Evaluation request onto the vector — step 11 of InnerModuleEvaluation in the
+    // import-defer proposal iterates requests in order, and an Evaluation request appearing
+    // after a Defer request for the same module triggers normal evaluation.
+    auto result = m_requestedModules.add(specifier.impl(), static_cast<int>(phase));
+    if (result.isNewEntry) {
+        moduleRecord()->appendRequestedModule(specifier, phase, WTF::move(attributes));
+        return;
+    }
+    bool previouslyDefer = result.iterator->value == static_cast<int>(AbstractModuleRecord::ModulePhase::Defer);
+    if (previouslyDefer && phase == AbstractModuleRecord::ModulePhase::Evaluation) {
+        moduleRecord()->appendRequestedModule(specifier, phase, WTF::move(attributes));
+        result.iterator->value = static_cast<int>(phase);
+    }
 }
 
 void ModuleAnalyzer::exportVariable(ModuleProgramNode& moduleProgramNode, const RefPtr<UniquedStringImpl>& localName, const VariableEnvironmentEntry& variable)
@@ -84,6 +97,19 @@ void ModuleAnalyzer::exportVariable(ModuleProgramNode& moduleProgramNode, const 
         // export { namespace }
         //
         // Sec 15.2.1.16.1 step 11-a-ii-2-b https://tc39.github.io/ecma262/#sec-parsemodule
+        //
+        // For a deferred namespace (`import defer * as ns from "mod"; export { ns }`),
+        // we must NOT create a Namespace-type export that redirects through the target
+        // module's `[[Namespace]]` — that would re-materialize the Evaluation-phase
+        // namespace and drop the Defer phase. The local binding in this module's
+        // environment already holds the Deferred namespace (set up in
+        // CyclicModuleRecord::initializeEnvironment), so we emit a Local export
+        // entry that reads straight from that binding.
+        if (importEntry.phase == AbstractModuleRecord::ModulePhase::Defer) {
+            for (auto& exportName : moduleProgramNode.moduleScopeData().exportedBindings().get(localName.get()))
+                moduleRecord()->addExportEntry(JSModuleRecord::ExportEntry::createLocal(Identifier::fromUid(m_vm, exportName.get()), Identifier::fromUid(m_vm, localName.get())));
+            return;
+        }
         for (auto& exportName : moduleProgramNode.moduleScopeData().exportedBindings().get(localName.get()))
             moduleRecord()->addExportEntry(JSModuleRecord::ExportEntry::createNamespace(Identifier::fromUid(m_vm, exportName.get()), importEntry.moduleRequest));
         return;
